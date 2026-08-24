@@ -224,19 +224,14 @@ type
     {$IF CompilerVersion < 28} // Below RAD Studio XE7
     CBuilderSupportedPlatforms = [];
     DelphiSupportedPlatforms = [];
-    {$ELSEIF CompilerVersion <= 33} // RAD Studio XE7 to RAD Studio 10.3 Rio
+    {$ELSEIF CompilerVersion <= 34} // RAD Studio XE7 to RAD Studio 10.4 Sydney
     CBuilderSupportedPlatforms = [TSkProjectPlatform.Win32, TSkProjectPlatform.Win64];
     DelphiSupportedPlatforms = [TSkProjectPlatform.Win32, TSkProjectPlatform.Win64];
-    {$ELSEIF CompilerVersion <= 34} // RAD Studio 10.4 Sydney
-    CBuilderSupportedPlatforms = [TSkProjectPlatform.Win32, TSkProjectPlatform.Win64, TSkProjectPlatform.Android];
-    DelphiSupportedPlatforms = [TSkProjectPlatform.Win32, TSkProjectPlatform.Win64, TSkProjectPlatform.Android,
-      TSkProjectPlatform.Android64];
     {$ELSEIF CompilerVersion <= 35} // RAD Studio 11 Alexandria
-    CBuilderSupportedPlatforms = [TSkProjectPlatform.Win32, TSkProjectPlatform.Win64, TSkProjectPlatform.Android,
-      TSkProjectPlatform.iOSDevice64];
-    DelphiSupportedPlatforms = [TSkProjectPlatform.Win32, TSkProjectPlatform.Win64, TSkProjectPlatform.Android,
-      TSkProjectPlatform.Android64, TSkProjectPlatform.iOSDevice64, TSkProjectPlatform.iOSSimARM64,
-      TSkProjectPlatform.OSX64, TSkProjectPlatform.OSXARM64, TSkProjectPlatform.Linux64];
+    CBuilderSupportedPlatforms = [TSkProjectPlatform.Win32, TSkProjectPlatform.Win64, TSkProjectPlatform.iOSDevice64];
+    DelphiSupportedPlatforms = [TSkProjectPlatform.Win32, TSkProjectPlatform.Win64, TSkProjectPlatform.iOSDevice64,
+      TSkProjectPlatform.iOSSimARM64, TSkProjectPlatform.OSX64, TSkProjectPlatform.OSXARM64,
+      TSkProjectPlatform.Linux64];
     {$ELSEIF (CompilerVersion < 37) or ((CompilerVersion = 37) and NOT DECLARED(RTLVersion131))} // RAD Studio 12 Athens to RAD Studio 13.0 Florence
     CBuilderSupportedPlatforms = [TSkProjectPlatform.Win32, TSkProjectPlatform.Win64, TSkProjectPlatform.Win64x];
     DelphiSupportedPlatforms = [TSkProjectPlatform.Win32, TSkProjectPlatform.Win64, TSkProjectPlatform.Win64x,
@@ -328,7 +323,7 @@ const
 function ContainsStringInArray(const AString: string;
   const AArray: TArray<string>; const ACaseSensitive: Boolean = True): Boolean;
 var
-  I: Integer;
+  I: NativeInt;
 begin
   Result := False;
   if ACaseSensitive then
@@ -696,21 +691,23 @@ procedure TSkProjectManagerMenuEnableSkia.SetSkiaEnabled(
     LReader: IOTAEditReader;
     LReadCount: Integer;
     LPosition: Integer;
-    LBuffer: AnsiString;
+    LBuffer: UTF8String;
+    LUTF8Value: UTF8String;
   begin
     LReader := ASourceEditor.CreateReader;
     Result := Assigned(LReader);
     if Result then
     begin
-      AValue := '';
+      LUTF8Value := '';
       LPosition := 0;
       repeat
         SetLength(LBuffer, BufferSize);
         LReadCount := LReader.GetText(LPosition, PAnsiChar(LBuffer), BufferSize);
         SetLength(LBuffer, LReadCount);
-        AValue := AValue + string(LBuffer);
+        LUTF8Value := LUTF8Value + LBuffer;
         Inc(LPosition, LReadCount);
       until LReadCount < BufferSize;
+      AValue := UTF8ToString(LUTF8Value);
     end;
   end;
 
@@ -723,7 +720,7 @@ procedure TSkProjectManagerMenuEnableSkia.SetSkiaEnabled(
     begin
       LEditorWriter.CopyTo(0);
       LEditorWriter.DeleteTo(MaxInt);
-      LEditorWriter.Insert(PAnsiChar(AnsiString(AValue)));
+      LEditorWriter.Insert(PAnsiChar(UTF8Encode(AValue)));
       ASourceEditor.MarkModified;
     end;
   end;
@@ -1227,7 +1224,7 @@ class function TSkOTAHelper.ContainsOptionValue(const AValues, AValue,
   ASeparator: string): Boolean;
 var
   LValues: TArray<string>;
-  I: Integer;
+  I: NativeInt;
 begin
   LValues := AValues.Split([ASeparator], TStringSplitOptions.None);
   for I := 0 to Length(LValues) - 1 do
@@ -1252,7 +1249,7 @@ end;
 
 class function TSkOTAHelper.ExpandEnvironmentVar(var AValue: string): Boolean;
 var
-  R: Integer;
+  R: DWORD;
   LExpanded: string;
 begin
   SetLength(LExpanded, 1);
@@ -1365,7 +1362,7 @@ class function TSkOTAHelper.InsertOptionValue(const AValues, AValue,
   ASeparator: string): string;
 var
   LValues: TArray<string>;
-  I: Integer;
+  I: NativeInt;
 begin
   LValues := AValues.Split([ASeparator], TStringSplitOptions.None);
   try
@@ -1414,7 +1411,7 @@ class function TSkOTAHelper.RemoveOptionValue(const AValues, AValue,
 var
   LValues: TArray<string>;
   LNewValues: TArray<string>;
-  I: Integer;
+  I: NativeInt;
 begin
   LNewValues := [];
   LValues := AValues.Split([ASeparator], TStringSplitOptions.None);

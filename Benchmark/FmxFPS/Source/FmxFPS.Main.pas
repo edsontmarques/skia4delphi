@@ -17,9 +17,10 @@ interface
 uses
   { Delphi }
   System.SysUtils, System.Types, System.UITypes, System.Classes,
-  System.Diagnostics, System.TypInfo, FMX.Types, FMX.Controls, FMX.Forms,
+  System.TypInfo, FMX.Types, FMX.Controls, FMX.Forms,
   FMX.Graphics, FMX.StdCtrls, FMX.Objects, FMX.Layouts, FMX.Memo, FMX.Dialogs,
-  FMX.Controls.Presentation, FMX.Edit, FMX.ListBox, FMX.Effects, FMX.Filter.Effects;
+  FMX.Controls.Presentation, FMX.Edit, FMX.ListBox, FMX.Effects, FMX.Filter.Effects,
+  FmxFPS.Diagnostics;
 
 type
   { TVertScrollBox }
@@ -39,14 +40,17 @@ type
     procedure FormCreate(Sender: TObject);
     procedure tmrStartTimer(Sender: TObject);
   private
+    FCIMode: Boolean;
+    FCIOutputFileName: string;
+    FDiagnostics: IBenchmarkDiagnostics;
     FNextScrollUp: Boolean;
-    FPaintCount: Int64;
     FRunning: Boolean;
-    FStopwatch: TStopwatch;
     function CreateControl(const AControlNumber, ATotalOfControls: Integer): TControl;
+    function GetRenderName: string;
     class procedure ShowMessage(const AMessage: string; const ACloseDialogProc: TProc = nil); static;
     procedure SimulateScrollDown;
     procedure SimulateScrollUp;
+    procedure WriteCIResult;
   protected
     procedure DoPaint(const ACanvas: TCanvas; const ARect: TRectF); override;
   end;
@@ -68,7 +72,28 @@ uses
   {$IF CompilerVersion >= 31}
   FMX.DialogService,
   {$ENDIF}
-  System.IOUtils, FMX.Types3D;
+  System.IOUtils, System.JSON, FMX.Types3D;
+
+const
+  BenchmarkControlsCount = 750;
+  BenchmarkDurationMilliseconds = 6000;
+  BenchmarkTotalScrollHeight = 5000;
+
+function BenchmarkCIOutputFileName: string;
+var
+  LFileName: string;
+begin
+  if (FindCmdLineSwitch('ci-output', LFileName) or FindCmdLineSwitch('-ci-output', LFileName)) and
+    not LFileName.IsEmpty then
+  begin
+    if LFileName.StartsWith('=') then
+      LFileName := LFileName.Substring(1);
+    Result := TPath.GetFullPath(LFileName);
+  end
+  else
+    Result := TPath.GetFullPath(TPath.Combine(GetCurrentDir,
+      ChangeFileExt(ExtractFileName(ParamStr(0)), '.Results.json')));
+end;
 
 { TfrmMain }
 
@@ -235,18 +260,17 @@ procedure TfrmMain.DoPaint(const ACanvas: TCanvas; const ARect: TRectF);
 begin
   if FRunning then
   begin
-    if FPaintCount = 0 then
+    FDiagnostics.RecordFrame;
+    if FDiagnostics.PaintCount = 1 then
     begin
       {$IF CompilerVersion < 29}
       vsbContent.ViewportPosition := PointF(0, vsbContent.ContentBounds.Height * 0.3);
       {$ELSE}
       vsbContent.ScrollBy(0, -vsbContent.ContentBounds.Height * 0.3);
       {$ENDIF}
-      FStopwatch := TStopwatch.StartNew;
       tmrSimulateScroll.Enabled := True;
       tmrSimulateScrollTimer(nil);
     end;
-    Inc(FPaintCount);
   end;
   inherited;
 end;
@@ -255,29 +279,42 @@ procedure TfrmMain.FormCreate(Sender: TObject);
 const
   StartingMessage = 'For 6 seconds, this performance test will simulate a real app, ' +
     'with hundreds of controls, to measure the FPS rate when sliding a vertical scroll.';
-  ControlsCount = 750;
-  TotalScrollHeight = 5000;
 var
   LControl: TControl;
   I: Integer;
 begin
-  for I := 0 to ControlsCount - 1 do
+  FDiagnostics := CreateBenchmarkDiagnostics;
+  FCIMode := FindCmdLineSwitch('ci', True) or FindCmdLineSwitch('-ci', True);
+  if FCIMode then
+    FCIOutputFileName := BenchmarkCIOutputFileName;
+  for I := 0 to BenchmarkControlsCount - 1 do
   begin
-    LControl := CreateControl(I, ControlsCount);
+    LControl := CreateControl(I, BenchmarkControlsCount);
     if LControl = nil then
       Continue;
     LControl.HitTest := False;
     LControl.Position.X := ((I mod 50) / 49) * Width;
-    LControl.Position.Y := (I / ControlsCount) * TotalScrollHeight;
+    LControl.Position.Y := (I / BenchmarkControlsCount) * BenchmarkTotalScrollHeight;
     if I mod 4 = 3 then
       LControl.Opacity := 0.5;
     LControl.Parent := vsbContent;
   end;
-  ShowMessage(StartingMessage,
-    procedure
-    begin
-      frmMain.tmrStart.Enabled := True;
-    end);
+  if FCIMode then
+    tmrStart.Enabled := True
+  else
+    ShowMessage(StartingMessage,
+      procedure
+      begin
+        frmMain.tmrStart.Enabled := True;
+      end);
+end;
+
+function TfrmMain.GetRenderName: string;
+begin
+  Result := Canvas.ClassName;
+  // When TCanvasGpu is used, the real render is the 3D forms render
+  if SameText(Result, 'TCanvasGpu') then
+    Result := Format('%s -> %s', [TContextManager.DefaultContextClass.ClassName, Result]);
 end;
 
 class procedure TfrmMain.ShowMessage(const AMessage: string;
@@ -446,33 +483,37 @@ begin
 end;
 
 procedure TfrmMain.tmrSimulateScrollTimer(Sender: TObject);
-
-  function GetRenderName: string;
-  begin
-    Result := Canvas.ClassName;
-    // When TCanvasGpu is used, the real render is the 3D forms render
-    if SameText(Result, 'TCanvasGpu') then
-      Result := Format('%s -> %s', [TContextManager.DefaultContextClass.ClassName, Result]);
-  end;
-
 begin
-  if FStopwatch.ElapsedMilliseconds > 6000 then
+  if FDiagnostics.ElapsedMilliseconds > BenchmarkDurationMilliseconds then
   begin
-    FStopwatch.Stop;
+    FRunning := False;
+    FDiagnostics.Stop;
     tmrSimulateScroll.Enabled := False;
     vsbContent.HitTest := True;
+    if FCIMode then
+    begin
+      try
+        WriteCIResult;
+        System.ExitCode := 0;
+      except
+        System.ExitCode := 2;
+      end;
+      Application.Terminate;
+      Exit;
+    end;
     {$IFDEF SKIA}
     if GlobalUseSkia then
     begin
-      ShowMessage(Format('Skia render (%s): %g fps' + sLineBreak + 'Form.Quality: %s' + sLineBreak + sLineBreak +
+      ShowMessage(Format('Skia render (%s)' + sLineBreak + 'Form.Quality: %s' + sLineBreak + '%s' +
+        sLineBreak + sLineBreak +
         'To compare the results with the firemonkey''s default canvas, just remove the line "GlobalUseSkia := True" ' +
-        'from the .dpr file of project.', [GetRenderName, FPaintCount / FStopwatch.Elapsed.TotalSeconds,
-        GetEnumName(TypeInfo(TCanvasQuality), Ord(Self.Quality))]))
+        'from the .dpr file of project.', [GetRenderName,
+        GetEnumName(TypeInfo(TCanvasQuality), Ord(Self.Quality)), FDiagnostics.Summary]))
     end
     else
     {$ENDIF}
-      ShowMessage(Format('FMX render (%s): %g fps' + sLineBreak + 'Form.Quality: %s', [GetRenderName,
-        FPaintCount / FStopwatch.Elapsed.TotalSeconds, GetEnumName(TypeInfo(TCanvasQuality), Ord(Self.Quality))]));
+      ShowMessage(Format('FMX render (%s)' + sLineBreak + 'Form.Quality: %s' + sLineBreak + '%s',
+        [GetRenderName, GetEnumName(TypeInfo(TCanvasQuality), Ord(Self.Quality)), FDiagnostics.Summary]));
   end
   else if FNextScrollUp then
     SimulateScrollUp
@@ -481,10 +522,42 @@ begin
   FNextScrollUp := not FNextScrollUp;
 end;
 
+procedure TfrmMain.WriteCIResult;
+var
+  LDirectoryName: string;
+  LRenderer: string;
+  LRootObject: TJSONObject;
+begin
+  {$IFDEF SKIA}
+  if GlobalUseSkia then
+    LRenderer := 'skia'
+  else
+  {$ENDIF}
+    LRenderer := 'fmx';
+  LRootObject := TJSONObject.Create;
+  try
+    LRootObject.AddPair('schema_version', TJSONNumber.Create(1));
+    LRootObject.AddPair('benchmark', 'FmxFPS');
+    LRootObject.AddPair('renderer', LRenderer);
+    LRootObject.AddPair('canvas', GetRenderName);
+    LRootObject.AddPair('quality', GetEnumName(TypeInfo(TCanvasQuality), Ord(Self.Quality)));
+    FDiagnostics.WriteTo(LRootObject);
+    LRootObject.AddPair('controls', TJSONNumber.Create(BenchmarkControlsCount));
+    LRootObject.AddPair('scroll_height', TJSONNumber.Create(BenchmarkTotalScrollHeight));
+    LDirectoryName := ExtractFilePath(FCIOutputFileName);
+    if not LDirectoryName.IsEmpty and not TDirectory.Exists(LDirectoryName) then
+      TDirectory.CreateDirectory(LDirectoryName);
+    TFile.WriteAllText(FCIOutputFileName, LRootObject.ToJSON, TEncoding.UTF8);
+  finally
+    LRootObject.Free;
+  end;
+end;
+
 procedure TfrmMain.tmrStartTimer(Sender: TObject);
 begin
   tmrStart.Enabled := False;
   FRunning := True;
+  FDiagnostics.Start;
   Invalidate;
 end;
 

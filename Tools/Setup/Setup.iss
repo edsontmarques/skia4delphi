@@ -38,13 +38,13 @@
 {************************************************************************}
 {                                                                        }
 { Example of command line to install in silent mode:                     }
-{   cmd /C ""Skia4Delphi_7.1.0_Setup.exe" /DIR="C:\Skia4Delphi" /SILENT  }
+{   cmd /C ""Skia4Delphi_7.3.0_Setup.exe" /DIR="C:\Skia4Delphi" /SILENT  }
 {     /RADStudioVersions=all"                                            }
 {                                                                        }
 { In GetIt implementation, the installation command could be:            }
-{   cmd /C ""$(BDSCatalogRepository)\Skia4Delphi-7.1.0\                  }
-{     Skia4Delphi_7.1.0_Setup.exe"                                       }
-{     /DIR="$(BDSCatalogRepository)\Skia4Delphi-7.1.0" /VERYSILENT       }
+{   cmd /C ""$(BDSCatalogRepository)\Skia4Delphi-7.3.0\                  }
+{     Skia4Delphi_7.3.0_Setup.exe"                                       }
+{     /DIR="$(BDSCatalogRepository)\Skia4Delphi-7.3.0" /VERYSILENT       }
 {     /RADStudioVersions=$(ProductVersion) /CreateUninstallRegKey=no"    }
 {                                                                        }
 { Example of command line to uninstall in silent mode:                   }
@@ -52,13 +52,13 @@
 {     /RADStudioVersions=all"                                            }
 {                                                                        }
 { In GetIt implementation, the uninstall command could be:               }
-{   cmd /C ""$(BDSCatalogRepository)\Skia4Delphi-7.1.0\unins000.exe"     }
+{   cmd /C ""$(BDSCatalogRepository)\Skia4Delphi-7.3.0\unins000.exe"     }
 {     /VERYSILENT /RADStudioVersions=$(ProductVersion)"                  }
 {                                                                        }
 {************************************************************************}
 
 #define LibraryName "Skia4Delphi"
-#define LibraryVersion "7.1.0"
+#define LibraryVersion "7.3.0"
 #define LibraryPublisher "Skia4Delphi Team"
 #define LibraryCopyright "Copyright (c) 2021-2026 Skia4Delphi Project"
 #define LibraryURL "https://skia4delphi.org"
@@ -106,7 +106,9 @@ DisableWelcomePage=no
 InternalCompressLevel=ultra64
 LicenseFile={#LibraryLicenseFileName}
 LZMANumBlockThreads=6
+#if Ver < EncodeVer(7, 0, 0)
 LZMAUseSeparateProcess=yes
+#endif
 MissingMessagesWarning=yes
 NotRecognizedMessagesWarning=yes
 PrivilegesRequired=lowest
@@ -169,7 +171,7 @@ Name: "ukrainian"; MessagesFile: "compiler:Languages\Ukrainian.isl,Languages\Def
   [Files]
     Source: "Style\*"; DestDir: "{app}\{#SetupFolder}\Style"; Flags: ignoreversion
     Source: "..\..\{#LibraryPackagesFolder}\*"; Excludes: "{#CommonRADStudioFilesExcludes}"; DestDir: "{app}\{#LibraryPackagesFolder}"; Flags: recursesubdirs ignoreversion
-    Source: "..\..\*"; Excludes: "{#CommonRADStudioFilesExcludes},*.gitattributes,*.gitignore,*.gitmodules,README.md,\.github\*,\.history\*,\Assets\Artwork\*,\Assets\Documents\*,\Assets\Setup\*,Binary\*,\Documents\*,\Externals\*,\{#LibraryDCUFolder}\*,Logs\*,*.Logs.txt,Objects\*,\{#SetupFolder}\*,\Tools\Chocolatey Package\*,\{#LibraryPackagesFolder}\*,\Tests\Assets\Expected.zip"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
+    Source: "..\..\*"; Excludes: "{#CommonRADStudioFilesExcludes},*.gitattributes,*.gitignore,*.gitmodules,README.md,VALIDATION.md,\.github\*,\.history\*,\Assets\Artwork\*,\Assets\Documents\*,\Assets\Setup\*,Binary\*,\Documents\*,\Externals\*,\{#LibraryDCUFolder}\*,Logs\*,*.Logs.txt,Objects\*,\{#SetupFolder}\*,\Tools\Chocolatey Package\*,\{#LibraryPackagesFolder}\*,\Tests\Assets\Expected-*.zip"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
     Source: "..\..\Samples\*.template.xml"; DestDir: "{app}\Samples"; Flags: recursesubdirs ignoreversion
     Source: "..\..\Binary\*"; DestDir: "{app}\Binary"; Flags: recursesubdirs ignoreversion
     #ifdef UseLibraryDCUFolder
@@ -207,6 +209,7 @@ Type: filesandordirs; Name: "{app}\.gitmodules";
 Type: filesandordirs; Name: "{app}\*.Logs.txt";
 Type: filesandordirs; Name: "{app}\LICENSE";
 Type: filesandordirs; Name: "{app}\README.md";
+Type: filesandordirs; Name: "{app}\VALIDATION.md";
 Type: filesandordirs; Name: "{app}\Setup.exe";
 Type: filesandordirs; Name: "{app}\SKIA-LICENSE";
 Type: dirifempty; Name: "{app}\Assets";
