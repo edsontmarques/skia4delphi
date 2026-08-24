@@ -1,4 +1,4 @@
-﻿<!--
+<!--
  Copyright (c) 2021-2026 Skia4Delphi Project.
 
  Use of this source code is governed by the MIT license that can be
@@ -185,6 +185,7 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
+        <DCCReference Include="..\..\Source\FmxFPS.Diagnostics.pas"/>
         <DCCReference Include="..\..\Source\FmxFPS.Main.pas">
             <Form>frmMain</Form>
             <FormType>fmx</FormType>
@@ -647,8 +648,8 @@
                 <ProjectRoot Platform="Win64" Name="$(PROJECTNAME)"/>
             </Deployment>
             <Platforms>
-                <Platform value="Android">True</Platform>
-                <Platform value="Android64">True</Platform>
+                <Platform value="Android">False</Platform>
+                <Platform value="Android64">False</Platform>
                 <Platform value="OSX64">False</Platform>
                 <Platform value="Win32">True</Platform>
                 <Platform value="Win64">True</Platform>

@@ -141,26 +141,44 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
+        <DCCReference Include="..\..\..\Source\System.Skia.API.pas"/>
+        <DCCReference Include="..\..\..\Source\System.Skia.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.Blender.pas"/>
+        <DCCReference Include="..\..\Source\Skia.Tests.Canvas.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.Codec.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.ColorFilter.pas"/>
+        <DCCReference Include="..\..\Source\Skia.Tests.ColorSpace.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.Documents.pas"/>
+        <DCCReference Include="..\..\Source\Skia.Tests.Font.pas"/>
+        <DCCReference Include="..\..\Source\Skia.Tests.FontMetrics.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.Foundation.ImageHash.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.Foundation.pas"/>
+        <DCCReference Include="..\..\Source\Skia.Tests.Graphics.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.Image.pas"/>
+        <DCCReference Include="..\..\Source\Skia.Tests.ImageFilter.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.MaskFilter.pas"/>
+        <DCCReference Include="..\..\Source\Skia.Tests.OpBuilder.pas"/>
+        <DCCReference Include="..\..\Source\Skia.Tests.Paint.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.Paragraph.pas"/>
+        <DCCReference Include="..\..\Source\Skia.Tests.ParagraphStyle.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.Path.pas"/>
+        <DCCReference Include="..\..\Source\Skia.Tests.PathBuilder.pas"/>
+        <DCCReference Include="..\..\Source\Skia.Tests.PathEffect.pas"/>
+        <DCCReference Include="..\..\Source\Skia.Tests.PathMeasure.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.Picture.pas"/>
+        <DCCReference Include="..\..\Source\Skia.Tests.Pixmap.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.Region.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.RotationScaleMatrix.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.RoundRect.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.RuntimeEffect.pas"/>
+        <DCCReference Include="..\..\Source\Skia.Tests.Shader.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.Skottie.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.Surface.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.Svg.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.TextBlob.pas"/>
+        <DCCReference Include="..\..\Source\Skia.Tests.Typeface.pas"/>
         <DCCReference Include="..\..\Source\Skia.Tests.Unicode.pas"/>
+        <DCCReference Include="..\..\Source\Skia.Tests.Vertices.pas"/>
         <DCCReference Include="..\..\Source\Issues\Skia.Tests.Issues.ZLib.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
@@ -822,38 +840,6 @@
                     <Platform Name="Linux64">
                         <RemoteDir>.\Codec</RemoteDir>
                         <RemoteName>world-time-zone.png</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="..\..\Assets\Expected.zip" Configuration="Debug" Class="File">
-                    <Platform Name="OSX64">
-                        <RemoteDir>Contents\Resources\</RemoteDir>
-                        <RemoteName>Expected.zip</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                    <Platform Name="OSXARM64">
-                        <RemoteDir>Contents\Resources\</RemoteDir>
-                        <RemoteName>Expected.zip</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                    <Platform Name="Linux64">
-                        <RemoteName>Expected.zip</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="..\..\Assets\Expected.zip" Configuration="Release" Class="File">
-                    <Platform Name="OSX64">
-                        <RemoteDir>Contents\Resources\</RemoteDir>
-                        <RemoteName>Expected.zip</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                    <Platform Name="OSXARM64">
-                        <RemoteDir>Contents\Resources\</RemoteDir>
-                        <RemoteName>Expected.zip</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                    <Platform Name="Linux64">
-                        <RemoteName>Expected.zip</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>

@@ -47,6 +47,11 @@ type
     property GenerateExpectedImages: Boolean read GetGenerateExpectedImages write SetGenerateExpectedImages;
   end;
 
+function CIOutputFileName(const ADefaultFileName: string): string;
+function IsBuildExpectedImagesMode: Boolean;
+function IsCIMode: Boolean;
+procedure WriteCIResults(const AFileName, ARunnerName: string; const ARunResults: IRunResults);
+
 var
   FAsyncTestRunner: IAsyncTestRunner;
 
@@ -60,6 +65,8 @@ uses
   System.Generics.Collections,
   System.SyncObjs,
   System.IOUtils,
+  System.JSON,
+  System.TypInfo,
   System.Zip,
   {$IF CompilerVersion >= 29}
   System.Hash,
@@ -72,6 +79,111 @@ uses
 
   { Tests }
   Skia.Tests.Foundation;
+
+const
+  CImagesNotSimilarMessagePrefix = 'Images are not similar.';
+  CExpectedImagesSharedNames: array[0..7] of string = ('01', '23', '45',
+    '67', '89', 'ab', 'cd', 'ef');
+
+function TestHash(const ATest: ITestInfo): string; forward;
+
+function ExpectedImageSharedIndex(const AEntryName: string): Integer;
+var
+  I: Integer;
+  LPrefix: string;
+begin
+  if AEntryName.IsEmpty then
+    raise EArgumentException.Create('The expected-image entry name cannot be empty.');
+  LPrefix := AEntryName.Substring(0, 1).ToLower;
+  for I := Low(CExpectedImagesSharedNames) to High(CExpectedImagesSharedNames) do
+    if CExpectedImagesSharedNames[I].Contains(LPrefix) then
+      Exit(I);
+  raise EArgumentException.CreateFmt('Invalid expected-image entry name: %s', [AEntryName]);
+end;
+
+function JSONBoolean(const AValue: Boolean): TJSONValue;
+begin
+  if AValue then
+    Result := TJSONTrue.Create
+  else
+    Result := TJSONFalse.Create;
+end;
+
+function ExpectedImageEntryName(const ATest: ITestInfo): string;
+begin
+  Result := TestHash(ATest).ToLower + '.png';
+end;
+
+function CIOutputFileName(const ADefaultFileName: string): string;
+var
+  LFileName: string;
+begin
+  if (FindCmdLineSwitch('ci-output', LFileName) or FindCmdLineSwitch('-ci-output', LFileName)) and
+    not LFileName.IsEmpty then
+  begin
+    if LFileName.StartsWith('=') then
+      LFileName := LFileName.Substring(1);
+    Result := TPath.GetFullPath(LFileName);
+  end
+  else
+    Result := TPath.GetFullPath(TPath.Combine(GetCurrentDir, ADefaultFileName));
+end;
+
+function IsCIMode: Boolean;
+begin
+  Result := FindCmdLineSwitch('ci', True) or FindCmdLineSwitch('-ci', True);
+end;
+
+function IsBuildExpectedImagesMode: Boolean;
+begin
+  Result := FindCmdLineSwitch('build-expected-images', True) or
+    FindCmdLineSwitch('-build-expected-images', True);
+end;
+
+procedure WriteCIResults(const AFileName, ARunnerName: string; const ARunResults: IRunResults);
+var
+  LDirectoryName: string;
+  LResultObject: TJSONObject;
+  LResultsArray: TJSONArray;
+  LRootObject: TJSONObject;
+  LTestResult: ITestResult;
+begin
+  LRootObject := TJSONObject.Create;
+  try
+    LRootObject.AddPair('schema_version', TJSONNumber.Create(1));
+    LRootObject.AddPair('runner', ARunnerName);
+    LRootObject.AddPair('all_passed', JSONBoolean(ARunResults.AllPassed));
+    LRootObject.AddPair('duration_ms', TJSONNumber.Create(ARunResults.Duration.TotalMilliseconds));
+    LRootObject.AddPair('test_count', TJSONNumber.Create(ARunResults.TestCount));
+    LRootObject.AddPair('passed', TJSONNumber.Create(ARunResults.PassCount));
+    LRootObject.AddPair('failures', TJSONNumber.Create(ARunResults.FailureCount));
+    LRootObject.AddPair('errors', TJSONNumber.Create(ARunResults.ErrorCount));
+    LRootObject.AddPair('ignored', TJSONNumber.Create(ARunResults.IgnoredCount));
+    LRootObject.AddPair('memory_leaks', TJSONNumber.Create(ARunResults.MemoryLeakCount));
+    LResultsArray := TJSONArray.Create;
+    LRootObject.AddPair('tests', LResultsArray);
+    for LTestResult in ARunResults.GetAllTestResults do
+    begin
+      LResultObject := TJSONObject.Create;
+      LResultObject.AddPair('name', LTestResult.Test.FullName);
+      LResultObject.AddPair('status', LowerCase(GetEnumName(TypeInfo(TTestResultType), Ord(LTestResult.ResultType))));
+      LResultObject.AddPair('duration_ms', TJSONNumber.Create(LTestResult.Duration.TotalMilliseconds));
+      if not LTestResult.Message.IsEmpty then
+        LResultObject.AddPair('message', LTestResult.Message);
+      if LTestResult.Message.StartsWith(CImagesNotSimilarMessagePrefix) then
+        LResultObject.AddPair('expected-image', ExpectedImageEntryName(LTestResult.Test));
+      if not LTestResult.StackTrace.IsEmpty then
+        LResultObject.AddPair('stack_trace', LTestResult.StackTrace);
+      LResultsArray.Add(LResultObject);
+    end;
+    LDirectoryName := ExtractFilePath(AFileName);
+    if not LDirectoryName.IsEmpty and not TDirectory.Exists(LDirectoryName) then
+      TDirectory.CreateDirectory(LDirectoryName);
+    TFile.WriteAllText(AFileName, LRootObject.ToJSON, TEncoding.UTF8);
+  finally
+    LRootObject.Free;
+  end;
+end;
 
 type
   { TAsyncTestRunner }
@@ -86,22 +198,24 @@ type
     FWrongImagesPathWasCreated: Boolean;
     class destructor Destroy;
     class function ExpectedImagesPath: string; static;
-    class function ExpectedImagesZipFile: string; static;
+    class function ExpectedImagesSharedPath(const ASharedIndex: Integer): string; static;
+    class function ExpectedImagesZipFile(const ASharedIndex: Integer): string; static;
     class function WrongImagesPath: string; static;
   private
     FCanceled: Boolean;
     FEvent: TEvent;
     FExecuting: Boolean;
     FExecuteFinishedEvent: TEvent;
-    FExpectedImagesWereExtracted: Boolean;
+    FExtractedExpectedImagesShareds: Byte;
     FGenerateExpectedImages: Boolean;
     FLastImageChecking: ISkImage;
     FLock: TCriticalSection;
     FLoggers: TList<ITestRunnerLogger>;
     FTask: ITask;
     FTestRunner: ITestRunner;
-    procedure ExtractExpectedImages;
+    procedure ExtractExpectedImages(const ASharedIndex: Integer);
     function GetExpectedImageFileName(const ATestResult: ITestResult): string;
+    function GetExpectedImageSharedIndex(const ATestResult: ITestResult): Integer;
     function GetFixtureList: ITestFixtureList;
     function GetGenerateExpectedImages: Boolean;
     function GetLoggers: TArray<ITestRunnerLogger>;
@@ -229,7 +343,7 @@ end;
 class destructor TAsyncTestRunner.Destroy;
 begin
   if FExpectedImagesPathWasCreated and TDirectory.Exists(FExpectedImagesPath) then
-    TDirectory.Delete(FExpectedImagesPath);
+    TDirectory.Delete(FExpectedImagesPath, True);
   if FWrongImagesPathWasCreated and TDirectory.Exists(FWrongImagesPath) then
     TDirectory.Delete(FWrongImagesPath);
 end;
@@ -247,8 +361,7 @@ begin
   FExecuteFinishedEvent.Free;
   FLock.Free;
   if TDirectory.Exists(ExpectedImagesPath) then
-    for LFileName in TDirectory.GetFiles(ExpectedImagesPath, '*' + ImagesExtension, TSearchOption.soTopDirectoryOnly) do
-      TFile.Delete(LFileName);
+    TDirectory.Delete(ExpectedImagesPath, True);
   if TDirectory.Exists(WrongImagesPath) then
     for LFileName in TDirectory.GetFiles(WrongImagesPath, '*' + ImagesExtension, TSearchOption.soTopDirectoryOnly) do
       TFile.Delete(LFileName);
@@ -266,7 +379,7 @@ begin
   begin
     TDirectory.Delete(FExpectedImagesPath, True);
     FExpectedImagesPathWasCreated := False;
-    FExpectedImagesWereExtracted := False;
+    FExtractedExpectedImagesShareds := 0;
   end;
   if FWrongImagesPathWasCreated and TDirectory.Exists(FWrongImagesPath) then
   begin
@@ -308,27 +421,50 @@ begin
   Result := FExpectedImagesPath;
 end;
 
-class function TAsyncTestRunner.ExpectedImagesZipFile: string;
+class function TAsyncTestRunner.ExpectedImagesSharedPath(
+  const ASharedIndex: Integer): string;
 begin
-  Result := TPath.Combine(TTestBase.RootAssetsPath, 'Expected.zip');
+  Result := TPath.Combine(ExpectedImagesPath,
+    CExpectedImagesSharedNames[ASharedIndex]);
 end;
 
-procedure TAsyncTestRunner.ExtractExpectedImages;
+class function TAsyncTestRunner.ExpectedImagesZipFile(
+  const ASharedIndex: Integer): string;
 begin
-  if FExpectedImagesWereExtracted then
+  Result := TPath.Combine(TTestBase.RootAssetsPath, Format('Expected-%s.zip',
+    [CExpectedImagesSharedNames[ASharedIndex]]));
+end;
+
+procedure TAsyncTestRunner.ExtractExpectedImages(const ASharedIndex: Integer);
+var
+  LExpectedImagesSharedPath: string;
+begin
+  if (FExtractedExpectedImagesShareds and Byte(1 shl ASharedIndex)) <> 0 then
     Exit;
-  if TDirectory.Exists(ExpectedImagesPath) then
-    TDirectory.Delete(ExpectedImagesPath);
-  TDirectory.CreateDirectory(ExpectedImagesPath);
+  LExpectedImagesSharedPath := ExpectedImagesSharedPath(ASharedIndex);
+  if TDirectory.Exists(LExpectedImagesSharedPath) then
+    TDirectory.Delete(LExpectedImagesSharedPath, True);
+  TDirectory.CreateDirectory(LExpectedImagesSharedPath);
   FExpectedImagesPathWasCreated := True;
-  TZipFile.ExtractZipFile(ExpectedImagesZipFile, ExpectedImagesPath);
-  FExpectedImagesWereExtracted := True;
+  TZipFile.ExtractZipFile(ExpectedImagesZipFile(ASharedIndex), LExpectedImagesSharedPath);
+  FExtractedExpectedImagesShareds := FExtractedExpectedImagesShareds or
+    Byte(1 shl ASharedIndex);
 end;
 
 function TAsyncTestRunner.GetExpectedImageFileName(
   const ATestResult: ITestResult): string;
+var
+  LEntryName: string;
 begin
-  Result := ExpectedImagesPath + TestHash(ATestResult.Test).ToLower + ImagesExtension;
+  LEntryName := ExpectedImageEntryName(ATestResult.Test);
+  Result := TPath.Combine(ExpectedImagesSharedPath(
+    ExpectedImageSharedIndex(LEntryName)), LEntryName);
+end;
+
+function TAsyncTestRunner.GetExpectedImageSharedIndex(
+  const ATestResult: ITestResult): Integer;
+begin
+  Result := ExpectedImageSharedIndex(ExpectedImageEntryName(ATestResult.Test));
 end;
 
 function TAsyncTestRunner.GetFixtureList: ITestFixtureList;
@@ -354,7 +490,7 @@ end;
 function TAsyncTestRunner.GetWrongImageFileName(
   const ATestResult: ITestResult): string;
 begin
-  Result := WrongImagesPath + TestHash(ATestResult.Test).ToLower + ImagesExtension;
+  Result := WrongImagesPath + ExpectedImageEntryName(ATestResult.Test);
 end;
 
 procedure TAsyncTestRunner.OnBeginTest(const AThreadId: TThreadID;
@@ -384,9 +520,19 @@ end;
 
 procedure TAsyncTestRunner.OnEndTest(const AThreadId: TThreadID;
   const ATest: ITestResult);
+var
+  LExpectedImageFileName: string;
+  LExpectedImageSharedIndex: Integer;
 begin
-  if FGenerateExpectedImages and TFile.Exists(GetExpectedImageFileName(ATest)) then
-    TFile.Delete(GetExpectedImageFileName(ATest));
+  LExpectedImageFileName := '';
+  LExpectedImageSharedIndex := -1;
+  if FGenerateExpectedImages then
+  begin
+    LExpectedImageFileName := GetExpectedImageFileName(ATest);
+    LExpectedImageSharedIndex := GetExpectedImageSharedIndex(ATest);
+    if TFile.Exists(LExpectedImageFileName) then
+      TFile.Delete(LExpectedImageFileName);
+  end;
   if FLastImageChecking <> nil then
   begin
     try
@@ -394,12 +540,14 @@ begin
         TTestResultType.Pass:
           if FGenerateExpectedImages then
           begin
-            if not TDirectory.Exists(ExpectedImagesPath) then
+            if not TDirectory.Exists(ExpectedImagesSharedPath(
+              LExpectedImageSharedIndex)) then
             begin
-              TDirectory.CreateDirectory(ExpectedImagesPath);
+              TDirectory.CreateDirectory(ExpectedImagesSharedPath(
+                LExpectedImageSharedIndex));
               FExpectedImagesPathWasCreated := True;
             end;
-            FLastImageChecking.EncodeToFile(GetExpectedImageFileName(ATest));
+            FLastImageChecking.EncodeToFile(LExpectedImageFileName);
           end;
         {$IF CompilerVersion >= 32}
         TTestResultType.Warning,
@@ -407,14 +555,21 @@ begin
         TTestResultType.Failure,
         TTestResultType.Error:
           begin
+            if LExpectedImageFileName.IsEmpty then
+            begin
+              LExpectedImageFileName := GetExpectedImageFileName(ATest);
+              LExpectedImageSharedIndex := GetExpectedImageSharedIndex(ATest);
+            end;
             if not TDirectory.Exists(WrongImagesPath) then
             begin
               TDirectory.CreateDirectory(WrongImagesPath);
               FWrongImagesPathWasCreated := True;
             end;
             FLastImageChecking.EncodeToFile(GetWrongImageFileName(ATest));
-            if (not FGenerateExpectedImages) and TFile.Exists(ExpectedImagesZipFile) and not TFile.Exists(GetExpectedImageFileName(ATest)) then
-              ExtractExpectedImages;
+            if (not FGenerateExpectedImages) and
+              TFile.Exists(ExpectedImagesZipFile(LExpectedImageSharedIndex)) and
+              not TFile.Exists(LExpectedImageFileName) then
+              ExtractExpectedImages(LExpectedImageSharedIndex);
           end;
       else
       end;
@@ -503,12 +658,34 @@ begin
 end;
 
 procedure TAsyncTestRunner.OnTestingEnds(const ARunResults: IRunResults);
+var
+  I: Integer;
+  LExpectedImagesZipFile: string;
+  LTemporaryZipFile: string;
 begin
   if FGenerateExpectedImages then
   begin
-    if TFile.Exists(ExpectedImagesZipFile) then
-      TFile.Delete(ExpectedImagesZipFile);
-    TZipFile.ZipDirectoryContents(ExpectedImagesZipFile, ExpectedImagesPath, TZipCompression.zcStored);
+    for I := Low(CExpectedImagesSharedNames) to High(CExpectedImagesSharedNames) do
+    begin
+      LExpectedImagesZipFile := ExpectedImagesZipFile(I);
+      LTemporaryZipFile := ChangeFileExt(LExpectedImagesZipFile, '.tmp.zip');
+      if TFile.Exists(LTemporaryZipFile) then
+        TFile.Delete(LTemporaryZipFile);
+      if TDirectory.Exists(ExpectedImagesSharedPath(I)) then
+        TZipFile.ZipDirectoryContents(LTemporaryZipFile,
+          ExpectedImagesSharedPath(I), TZipCompression.zcStored);
+    end;
+    for I := Low(CExpectedImagesSharedNames) to High(CExpectedImagesSharedNames) do
+    begin
+      LExpectedImagesZipFile := ExpectedImagesZipFile(I);
+      LTemporaryZipFile := ChangeFileExt(LExpectedImagesZipFile, '.tmp.zip');
+      if TFile.Exists(LTemporaryZipFile) then
+      begin
+        if TFile.Exists(LExpectedImagesZipFile) then
+          TFile.Delete(LExpectedImagesZipFile);
+        TFile.Move(LTemporaryZipFile, LExpectedImagesZipFile);
+      end;
+    end;
   end;
   TThread.ForceQueue(nil,
     procedure
@@ -528,9 +705,13 @@ procedure TAsyncTestRunner.OnTestingStarts(const AThreadId, ATestCount,
 procedure TAsyncTestRunner.OnTestingStarts(const AThreadId: TThreadID;
   ATestCount, ATestActiveCount: Cardinal);
 {$ENDIF}
+var
+  I: Integer;
 begin
-  if FGenerateExpectedImages and TFile.Exists(ExpectedImagesZipFile) then
-    ExtractExpectedImages;
+  if FGenerateExpectedImages then
+    for I := Low(CExpectedImagesSharedNames) to High(CExpectedImagesSharedNames) do
+      if TFile.Exists(ExpectedImagesZipFile(I)) then
+        ExtractExpectedImages(I);
   TThread.ForceQueue(nil,
     procedure
     var
