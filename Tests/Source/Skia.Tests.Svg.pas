@@ -34,7 +34,7 @@ type
   private
     function ColorAt(const ASvgContent: string; const AX, AY: Integer): TAlphaColor;
   public
-    [TestCase('Editing android eyes color', 'android.svg,100,100,eyes,fill,red,/8PDgYHD5/////Phw8fv////9+XHz//////////f///wD9AbwAPAA8ADwAPwD/AP/b/9v/2///8')]
+    [TestCase('Editing android eyes color', 'android.svg,100,100,eyes,fill,red,2v8gug4HiEC77hF0j0Tq4BtvQfzft/G/3QIoEQMg/hsPP/GcH1AC9UvMD0D8rWfP+wthxB17Dg')]
     procedure TestEditSvgElement(const ASvgFileName: string; const AWidth, AHeight: Integer; const AElementId, AAttributeName, AAttributeValue, AExpectedImageHash: string);
     [TestCase('android.svg',      'android.svg,0,0')]
     [TestCase('chinese-text.svg', 'chinese-text.svg,900,300')]
@@ -45,7 +45,15 @@ type
     [TestCase('youtube.svg',      'youtube.svg,0,0')]
     procedure TestGetIntrinsicSize(const ASvgFileName: string; const AWidth, AHeight: Single);
     [Test]
+    procedure TestNodeOutlivesDOM;
+    [Test]
     procedure TestPreserveAspectRatio;
+    [Test]
+    procedure TestResourceProviderLivesAsLongAsDOM;
+    [Test]
+    procedure TestResourceProviderOfInvalidData;
+    [Test]
+    procedure TestRootOutlivesDOM;
     [Test]
     procedure TestSetContainerSize;
     [Test]
@@ -111,6 +119,56 @@ uses
   System.Math,
   System.Math.Vectors;
 
+type
+  { TDestroyCounterResourceProvider }
+
+  TDestroyCounterResourceProvider = class(TSkResourceProviderBaseClass)
+  strict private
+    FData: TBytes;
+    FDestroyCount: PInteger;
+  strict protected
+    function Load(const APath, AName: string): TBytes; override;
+  public
+    constructor Create(const AData: TBytes; const ADestroyCount: PInteger);
+    destructor Destroy; override;
+  end;
+
+const
+  ImageSvg = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100" height="100">' +
+    '<image xlink:href="red.png" width="100" height="100"/></svg>';
+
+function MakeRedPng: TBytes;
+var
+  LSurface: ISkSurface;
+begin
+  LSurface := TSkSurface.MakeRaster(10, 10);
+  Assert.IsNotNull(LSurface, 'Invalid ISkSurface (nil)');
+  LSurface.Canvas.Clear(TAlphaColors.Red);
+  Result := LSurface.MakeImageSnapshot.Encode(TSkEncodedImageFormat.PNG);
+end;
+
+{ TDestroyCounterResourceProvider }
+
+constructor TDestroyCounterResourceProvider.Create(const AData: TBytes;
+  const ADestroyCount: PInteger);
+begin
+  inherited Create;
+  FData := AData;
+  FDestroyCount := ADestroyCount;
+end;
+
+destructor TDestroyCounterResourceProvider.Destroy;
+begin
+  Inc(FDestroyCount^);
+  inherited;
+end;
+
+function TDestroyCounterResourceProvider.Load(const APath,
+  AName: string): TBytes;
+begin
+  Result := FData;
+end;
+
 { TSkSvgDOMTests }
 
 function TSkSvgDOMTests.ColorAt(const ASvgContent: string; const AX,
@@ -155,6 +213,20 @@ begin
   Assert.AreSimilar(AExpectedImageHash, LSurface.MakeImageSnapshot, 0.9961);
 end;
 
+procedure TSkSvgDOMTests.TestNodeOutlivesDOM;
+var
+  LNode: ISkSVGNode;
+  LSVGDOM: ISkSVGDOM;
+begin
+  LSVGDOM := TSkSVGDOM.Make('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">' +
+    '<rect id="r" width="100" height="100" fill="red"/></svg>');
+  Assert.IsNotNull(LSVGDOM, 'Invalid SkSVGDOM');
+  LNode := LSVGDOM.FindNodeById('r');
+  Assert.IsNotNull(LNode, 'Invalid ISkSVGNode (nil)');
+  LSVGDOM := nil;
+  Assert.IsTrue(LNode.TrySetAttribute('fill', 'blue'), 'The node should outlive the DOM');
+end;
+
 procedure TSkSvgDOMTests.TestPreserveAspectRatio;
 var
   LSVGDOM: ISkSVGDOM;
@@ -168,6 +240,59 @@ begin
   LSVGDOM.Root.PreserveAspectRatio := TSkSVGPreserveAspectRatio.Create(TSkSVGAspectAlign.None, TSkSVGAspectScale.Slice);
   Assert.IsTrue(LSVGDOM.Root.PreserveAspectRatio.Align = TSkSVGAspectAlign.None, '(Align)');
   Assert.IsTrue(LSVGDOM.Root.PreserveAspectRatio.Scale = TSkSVGAspectScale.Slice, '(Scale)');
+end;
+
+procedure TSkSvgDOMTests.TestResourceProviderLivesAsLongAsDOM;
+var
+  LDestroyCount: Integer;
+  LResourceProvider: ISkResourceProvider;
+  LSurface: ISkSurface;
+  LSVGDOM: ISkSVGDOM;
+begin
+  LDestroyCount := 0;
+  LResourceProvider := TDestroyCounterResourceProvider.Create(MakeRedPng, @LDestroyCount);
+  LSVGDOM := TSkSVGDOM.Make(ImageSvg, LResourceProvider);
+  Assert.IsNotNull(LSVGDOM, 'Invalid SkSVGDOM');
+  LResourceProvider := nil;
+  Assert.AreEqual(0, LDestroyCount, 'The DOM should keep the resource provider alive');
+
+  // The image is only loaded while rendering
+  LSurface := TSkSurface.MakeRaster(100, 100);
+  Assert.IsNotNull(LSurface, 'Invalid ISkSurface (nil)');
+  LSurface.Canvas.Clear(TAlphaColors.Null);
+  LSVGDOM.Render(LSurface.Canvas);
+  Assert.AreSameColor(TAlphaColors.Red, LSurface.PeekPixels.Colors[50, 50], 2, 'The image should be loaded by the resource provider');
+
+  LSVGDOM := nil;
+  Assert.AreEqual(1, LDestroyCount, 'The DOM should release the resource provider');
+end;
+
+procedure TSkSvgDOMTests.TestResourceProviderOfInvalidData;
+var
+  LDestroyCount: Integer;
+  LResourceProvider: ISkResourceProvider;
+begin
+  LDestroyCount := 0;
+  LResourceProvider := TDestroyCounterResourceProvider.Create(nil, @LDestroyCount);
+  Assert.IsNull(TSkSVGDOM.Make('invalid', LResourceProvider), 'The DOM should not be created');
+  LResourceProvider := nil;
+  Assert.AreEqual(1, LDestroyCount, 'The resource provider should be released when no DOM is created');
+end;
+
+procedure TSkSvgDOMTests.TestRootOutlivesDOM;
+var
+  LRoot: ISkSVGSVG;
+  LSize: TSizeF;
+  LSVGDOM: ISkSVGDOM;
+begin
+  LSVGDOM := TSkSVGDOM.Make('<svg xmlns="http://www.w3.org/2000/svg" width="30" height="40"/>');
+  Assert.IsNotNull(LSVGDOM, 'Invalid SkSVGDOM');
+  LRoot := LSVGDOM.Root;
+  LSVGDOM := nil;
+  Assert.IsTrue(LRoot.TrySetAttribute('width', '50'), 'The root should outlive the DOM');
+  LSize := LRoot.GetIntrinsicSize(TSizeF.Create(0, 0));
+  Assert.AreEqual(50.0, LSize.Width, TEpsilon.Vector, 'Different width');
+  Assert.AreEqual(40.0, LSize.Height, TEpsilon.Vector, 'Different height');
 end;
 
 procedure TSkSvgDOMTests.TestSetContainerSize;

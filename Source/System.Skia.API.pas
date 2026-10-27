@@ -835,6 +835,7 @@ type
   sk_font_path_proc              = procedure (const path: sk_path_t; const matrix: psk_matrix_t; context: Pointer); cdecl;
   sk_image_raster_release_proc   = procedure (const pixels: Pointer; context: Pointer); cdecl;
   sk_image_texture_release_proc  = procedure (context: Pointer); cdecl;
+  sk_streamadapter_release_proc  = procedure (context: Pointer); cdecl;
   sk_surface_raster_release_proc = procedure (pixels, context: Pointer); cdecl;
 
   sk_streamadapter_procs_t = record
@@ -1245,6 +1246,8 @@ type
     load: function (context: Pointer; const path, name: MarshaledAString): sk_data_t; cdecl;
   end;
   psk_resourceproviderbaseclass_procs_t = ^sk_resourceproviderbaseclass_procs_t;
+
+  sk_resourceprovider_release_proc = procedure (context: Pointer); cdecl;
 
 
   { modules/skshaper/include/sk4d_shaper_types.h }
@@ -1926,6 +1929,7 @@ var
   { include/c/sk4d_pixmap.h }
 
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_pixmap_create         {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const image_info: psk_imageinfo_t; const pixels: Pointer; row_bytes: size_t): sk_pixmap_t; cdecl;
+  {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_pixmap_create2        {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(): sk_pixmap_t; cdecl;
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_pixmap_destroy        {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(self: sk_pixmap_t); cdecl;
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_pixmap_erase          {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const self: sk_pixmap_t; color: sk_color_t; const area: psk_irect_t): _bool; cdecl;
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_pixmap_erase2         {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const self: sk_pixmap_t; const color: psk_color4f_t; color_space: sk_colorspace_t; const area: psk_irect_t): _bool; cdecl;
@@ -2080,6 +2084,7 @@ var
   { include/c/sk4d_stream.h }
 
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_streamadapter_create    {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(context: Pointer): sk_streamadapter_t; cdecl;
+  {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_streamadapter_create2   {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(context: Pointer; release_proc: sk_streamadapter_release_proc): sk_streamadapter_t; cdecl;
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_streamadapter_destroy   {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(self: sk_streamadapter_t); cdecl;
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_streamadapter_set_procs {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(const procs: psk_streamadapter_procs_t); cdecl;
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_wstreamadapter_create   {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(context: Pointer): sk_wstreamadapter_t; cdecl;
@@ -2148,6 +2153,11 @@ var
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_typeface_make_from_file  {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const file_name: MarshaledAString; ttc_index: int32_t): sk_typeface_t; cdecl;
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_typeface_make_from_stream{$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(stream: sk_stream_t; ttc_index: int32_t): sk_typeface_t; cdecl;
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_typeface_make_from_name  {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const family_name: MarshaledAString; const style: psk_fontstyle_t): sk_typeface_t; cdecl;
+
+
+  { include/c/sk4d_version.h }
+
+  {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_version_get{$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(out major, minor, patch: int32_t); cdecl;
 
 
   { include/c/sk4d_vertices.h }
@@ -2284,7 +2294,10 @@ var
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_textstyle_get_decoration_style    {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const self: sk_textstyle_t): sk_textdecorationstyle_t; cdecl;
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_textstyle_get_decoration_thickness{$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const self: sk_textstyle_t): float; cdecl;
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_textstyle_get_decorations         {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const self: sk_textstyle_t): uint32_t; cdecl;
+  {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_textstyle_get_font_edging         {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const self: sk_textstyle_t): sk_fontedging_t; cdecl;
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_textstyle_get_font_families       {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const self: sk_textstyle_t; const result: PMarshaledAString): size_t; cdecl;
+  {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_textstyle_get_font_features       {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const self: sk_textstyle_t; names: psk_string_t; values: pint32_t): size_t; cdecl;
+  {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_textstyle_get_font_hinting        {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const self: sk_textstyle_t): sk_fonthinting_t; cdecl;
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_textstyle_get_font_metrics        {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(const self: sk_textstyle_t; out result: sk_fontmetrics_t); cdecl;
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_textstyle_get_font_size           {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const self: sk_textstyle_t): float; cdecl;
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_textstyle_get_font_style          {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(const self: sk_textstyle_t; out result: sk_fontstyle_t); cdecl;
@@ -2293,6 +2306,8 @@ var
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_textstyle_get_height_multiplier   {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const self: sk_textstyle_t): float; cdecl;
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_textstyle_get_letter_spacing      {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const self: sk_textstyle_t): float; cdecl;
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_textstyle_get_locale              {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const self: sk_textstyle_t): sk_string_t; cdecl;
+  {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_textstyle_get_shadows             {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const self: sk_textstyle_t; result: psk_textshadow_t): size_t; cdecl;
+  {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_textstyle_get_subpixel            {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const self: sk_textstyle_t): _bool; cdecl;
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_textstyle_get_word_spacing        {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const self: sk_textstyle_t): float; cdecl;
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_textstyle_is_equal                {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const self, text_style: sk_textstyle_t): _bool; cdecl;
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_textstyle_reset_font_features     {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(self: sk_textstyle_t); cdecl;
@@ -2303,7 +2318,9 @@ var
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_textstyle_set_decoration_style    {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(self: sk_textstyle_t; value: sk_textdecorationstyle_t); cdecl;
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_textstyle_set_decoration_thickness{$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(self: sk_textstyle_t; value: float); cdecl;
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_textstyle_set_decorations         {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(self: sk_textstyle_t; value: uint32_t); cdecl;
+  {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_textstyle_set_font_edging         {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(self: sk_textstyle_t; value: sk_fontedging_t); cdecl;
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_textstyle_set_font_families       {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(self: sk_textstyle_t; const values: PMarshaledAString; count: size_t); cdecl;
+  {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_textstyle_set_font_hinting        {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(self: sk_textstyle_t; value: sk_fonthinting_t); cdecl;
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_textstyle_set_font_size           {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(self: sk_textstyle_t; value: float); cdecl;
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_textstyle_set_font_style          {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(self: sk_textstyle_t; const value: psk_fontstyle_t); cdecl;
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_textstyle_set_foreground_color    {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(self: sk_textstyle_t; paint: sk_paint_t); cdecl;
@@ -2311,6 +2328,7 @@ var
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_textstyle_set_height_multiplier   {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(self: sk_textstyle_t; value: float); cdecl;
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_textstyle_set_letter_spacing      {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(self: sk_textstyle_t; value: float); cdecl;
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_textstyle_set_locale              {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(self: sk_textstyle_t; const value: MarshaledAString); cdecl;
+  {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_textstyle_set_subpixel            {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(self: sk_textstyle_t; value: _bool); cdecl;
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_textstyle_set_word_spacing        {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(self: sk_textstyle_t; value: float); cdecl;
 
 
@@ -2352,6 +2370,7 @@ var
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_svgdom_get_root          {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const self: sk_svgdom_t): sk_svgsvg_t; cdecl;
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_svgdom_make_from_file    {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(const file_name: MarshaledAString; font_provider: sk_fontmgr_t): sk_svgdom_t; cdecl;
   {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_svgdom_make_from_stream  {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(stream: sk_stream_t; resource_provider: sk_resourceprovider_t; font_provider: sk_fontmgr_t): sk_svgdom_t; cdecl;
+  {$IFDEF SK_STATIC_LIBRARY}function  {$ENDIF}sk4d_svgdom_make_from_stream2 {$IFNDEF SK_STATIC_LIBRARY}: function  {$ENDIF}(stream: sk_stream_t; resource_provider: sk_resourceprovider_t; font_provider: sk_fontmgr_t; release_proc: sk_resourceprovider_release_proc; context: Pointer): sk_svgdom_t; cdecl;
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_svgdom_render            {$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(const self: sk_svgdom_t; canvas: sk_canvas_t); cdecl;
   {$IFDEF SK_STATIC_LIBRARY}procedure {$ENDIF}sk4d_svgdom_set_container_size{$IFNDEF SK_STATIC_LIBRARY}: procedure {$ENDIF}(self: sk_svgdom_t; const size: psk_size_t); cdecl;
 
@@ -2441,10 +2460,13 @@ uses
   System.ZLib;
 {$ENDIF}
 {$ELSE}
-{$IF NOT DEFINED(FPC) and DEFINED(ANDROID)}
+{$IFNDEF FPC}
 uses
   { Delphi }
-  System.IOUtils;
+  {$IFDEF ANDROID}
+  System.IOUtils,
+  {$ENDIF}
+  Posix.Dlfcn;
 {$ENDIF}
 {$ENDIF}
 {$ENDIF}
@@ -8569,13 +8591,21 @@ const
   {$ENDIF}
 {$ELSE}
 const
+  // The library must have the same major and at least the same minor version.
+  // The versioned name is tried first, so executables built against different
+  // binaries can share a folder.
+  LibraryMajorVersion = 151;
+  LibraryMinorVersion = 1;
   {$IFDEF MSWINDOWS}
-  LibraryName = 'sk4d.dll';
+  LibraryName                = 'sk4d.dll';
+  VersionedLibraryNameFormat = 'sk4d-%d.%d.dll';
   {$ELSE}
   {$IFDEF MACOS}
-  LibraryName = 'libsk4d.dylib';
+  LibraryName                = 'libsk4d.dylib';
+  VersionedLibraryNameFormat = 'libsk4d-%d.%d.dylib';
   {$ELSE}
-  LibraryName = 'libsk4d.so';
+  LibraryName                = 'libsk4d.so';
+  VersionedLibraryNameFormat = 'libsk4d-%d.%d.so';
   {$ENDIF}
   {$ENDIF}
 {$ENDIF}
@@ -8584,28 +8614,94 @@ const
 var
   {$IFNDEF FPC}[Volatile]{$ENDIF} InitCount: Integer;
   {$IFNDEF SK_STATIC_LIBRARY}
+  InitLock: Integer;
   LibraryHandle: HMODULE;
   {$ENDIF}
 {$ENDIF}
 
-{$IF DEFINED(SK_DEBUG) and DEFINED(MSWINDOWS) and NOT DEFINED(SK_STATIC_LIBRARY)}
+{$IFNDEF SK_STATIC_LIBRARY}
+procedure RaiseLibraryLoadError;
+{$IFDEF MSWINDOWS}
+var
+  LError: {$IFDEF FPC}Integer{$ELSE}Cardinal{$ENDIF};
+{$ENDIF}
+begin
+  {$IF DEFINED(MSWINDOWS)}
+  LError := {$IFDEF FPC}GetLastOSError{$ELSE}GetLastError{$ENDIF};
+  raise Exception.CreateFmt('Could not load the Skia library "%s" (error %d: %s).', [LibraryName, LError, SysErrorMessage(LError)]);
+  {$ELSEIF DEFINED(FPC)}
+  raise Exception.CreateFmt('Could not load the Skia library "%s" (%s).', [LibraryName, GetLoadErrorStr]);
+  {$ELSE}
+  raise Exception.CreateFmt('Could not load the Skia library "%s" (%s).', [LibraryName, string(UTF8String(dlerror))]);
+  {$ENDIF}
+end;
+
+procedure CheckLibraryVersion;
+var
+  LMajor: int32_t;
+  LMinor: int32_t;
+  LPatch: int32_t;
+  LVersion: string;
+begin
+  sk4d_version_get := GetProcAddress(LibraryHandle, PChar('sk4d_version_get'));
+
+  if Assigned(sk4d_version_get) then
+  begin
+    sk4d_version_get(LMajor, LMinor, LPatch);
+    if (LMajor = LibraryMajorVersion) and (LMinor >= LibraryMinorVersion) then
+      Exit;
+    LVersion := Format('%d.%d.%d', [LMajor, LMinor, LPatch]);
+  end
+  else
+    LVersion := 'unknown';
+  FreeLibrary(LibraryHandle);
+  LibraryHandle := 0;
+  InitCount := 0;
+  raise Exception.CreateFmt('The Skia library version %s is not supported (requires %d.%d or a later %d.x).',
+    [LVersion, LibraryMajorVersion, LibraryMinorVersion, LibraryMajorVersion]);
+end;
+
+{$IFDEF SK_DEBUG}
 function GetProcAddress(AModule: HMODULE; AProcName: PChar): Pointer;
 begin
+  {$IF DEFINED(FPC)}
+  Result := System.GetProcAddress(AModule, AProcName);
+  {$ELSEIF DEFINED(MSWINDOWS)}
   Result := Winapi.Windows.GetProcAddress(AModule, AProcName);
+  {$ELSE}
+  Result := System.SysUtils.GetProcAddress(AModule, AProcName);
+  {$ENDIF}
   if Result = nil then
+  begin
+    FreeLibrary(LibraryHandle);
+    LibraryHandle := 0;
+    InitCount := 0;
     raise Exception.CreateFmt('Function "%s" not found in Skia library.', [AProcName]);
+  end;
 end;
 {$ENDIF}
 
-{$IFNDEF SK_STATIC_LIBRARY}
-procedure SkInitialize;
+procedure AcquireInitLock;
 begin
   {$IF DEFINED(FPC) and (FPC_FULLVERSION < 30301)}
-  if InterlockedIncrement(InitCount) <> 1 then
+  while InterlockedCompareExchange(InitLock, 1, 0) <> 0 do
   {$ELSE}
-  if AtomicIncrement(InitCount) <> 1 then
+  while AtomicCmpExchange(InitLock, 1, 0) <> 0 do
   {$ENDIF}
-    Exit;
+    Sleep(0);
+end;
+
+procedure ReleaseInitLock;
+begin
+  {$IF DEFINED(FPC) and (FPC_FULLVERSION < 30301)}
+  InterlockedExchange(InitLock, 0);
+  {$ELSE}
+  AtomicExchange(InitLock, 0);
+  {$ENDIF}
+end;
+
+procedure InitializeLibrary;
+begin
   {$IF DEFINED(ANDROID) and NOT DEFINED(FPC)}
   // Some Android devices, normally old, need the full path of the library,
   // and other devices, normally new, do not accept the full path.
@@ -8613,10 +8709,16 @@ begin
   if LibraryHandle = 0 then
     LibraryHandle := SafeLoadLibrary(TPath.Combine(TPath.GetLibraryPath, LibraryName));
   {$ELSE}
-  LibraryHandle := SafeLoadLibrary(LibraryName);
+  LibraryHandle := SafeLoadLibrary(Format(VersionedLibraryNameFormat, [LibraryMajorVersion, LibraryMinorVersion]));
+  if LibraryHandle = 0 then
+    LibraryHandle := SafeLoadLibrary(LibraryName);
   {$ENDIF}
   if LibraryHandle = 0 then
-    Abort;
+  begin
+    InitCount := 0;
+    RaiseLibraryLoadError;
+  end;
+  CheckLibraryVersion;
   {$IFDEF MSWINDOWS}
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
   {$ENDIF}
@@ -9743,6 +9845,7 @@ function  sk4d_picturerecorder_finish_recording2(self: sk_picturerecorder_t; con
 
 {$IFNDEF SK_STATIC_LIBRARY}
   sk4d_pixmap_create          := GetProcAddress(LibraryHandle, PChar('sk4d_pixmap_create'));
+  sk4d_pixmap_create2         := GetProcAddress(LibraryHandle, PChar('sk4d_pixmap_create2'));
   sk4d_pixmap_destroy         := GetProcAddress(LibraryHandle, PChar('sk4d_pixmap_destroy'));
   sk4d_pixmap_erase           := GetProcAddress(LibraryHandle, PChar('sk4d_pixmap_erase'));
   sk4d_pixmap_erase2          := GetProcAddress(LibraryHandle, PChar('sk4d_pixmap_erase2'));
@@ -9764,6 +9867,7 @@ function  sk4d_picturerecorder_finish_recording2(self: sk_picturerecorder_t; con
   sk4d_pixmap_set_colorspace  := GetProcAddress(LibraryHandle, PChar('sk4d_pixmap_set_colorspace'));
 {$ELSE}
 function  sk4d_pixmap_create(const image_info: psk_imageinfo_t; const pixels: Pointer; row_bytes: size_t): sk_pixmap_t; cdecl;                          external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_pixmap_create';
+function  sk4d_pixmap_create2(): sk_pixmap_t; cdecl;                                                                                                    external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_pixmap_create2';
 procedure sk4d_pixmap_destroy(self: sk_pixmap_t); cdecl;                                                                                                external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_pixmap_destroy';
 function  sk4d_pixmap_erase(const self: sk_pixmap_t; color: sk_color_t; const area: psk_irect_t): _bool; cdecl;                                         external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_pixmap_erase';
 function  sk4d_pixmap_erase2(const self: sk_pixmap_t; const color: psk_color4f_t; color_space: sk_colorspace_t; const area: psk_irect_t): _bool; cdecl; external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_pixmap_erase2';
@@ -10045,18 +10149,20 @@ function sk4d_shader_make_with_local_matrix(const self: sk_shader_t; const local
 
 {$IFNDEF SK_STATIC_LIBRARY}
   sk4d_streamadapter_create     := GetProcAddress(LibraryHandle, PChar('sk4d_streamadapter_create'));
+  sk4d_streamadapter_create2    := GetProcAddress(LibraryHandle, PChar('sk4d_streamadapter_create2'));
   sk4d_streamadapter_destroy    := GetProcAddress(LibraryHandle, PChar('sk4d_streamadapter_destroy'));
   sk4d_streamadapter_set_procs  := GetProcAddress(LibraryHandle, PChar('sk4d_streamadapter_set_procs'));
   sk4d_wstreamadapter_create    := GetProcAddress(LibraryHandle, PChar('sk4d_wstreamadapter_create'));
   sk4d_wstreamadapter_destroy   := GetProcAddress(LibraryHandle, PChar('sk4d_wstreamadapter_destroy'));
   sk4d_wstreamadapter_set_procs := GetProcAddress(LibraryHandle, PChar('sk4d_wstreamadapter_set_procs'));
 {$ELSE}
-function  sk4d_streamadapter_create(context: Pointer): sk_streamadapter_t; cdecl;        external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_streamadapter_create';
-procedure sk4d_streamadapter_destroy(self: sk_streamadapter_t); cdecl;                   external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_streamadapter_destroy';
-procedure sk4d_streamadapter_set_procs(const procs: psk_streamadapter_procs_t); cdecl;   external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_streamadapter_set_procs';
-function  sk4d_wstreamadapter_create(context: Pointer): sk_wstreamadapter_t; cdecl;      external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_wstreamadapter_create';
-procedure sk4d_wstreamadapter_destroy(self: sk_wstreamadapter_t); cdecl;                 external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_wstreamadapter_destroy';
-procedure sk4d_wstreamadapter_set_procs(const procs: psk_wstreamadapter_procs_t); cdecl; external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_wstreamadapter_set_procs';
+function  sk4d_streamadapter_create(context: Pointer): sk_streamadapter_t; cdecl;                                               external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_streamadapter_create';
+function  sk4d_streamadapter_create2(context: Pointer; release_proc: sk_streamadapter_release_proc): sk_streamadapter_t; cdecl; external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_streamadapter_create2';
+procedure sk4d_streamadapter_destroy(self: sk_streamadapter_t); cdecl;                                                          external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_streamadapter_destroy';
+procedure sk4d_streamadapter_set_procs(const procs: psk_streamadapter_procs_t); cdecl;                                          external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_streamadapter_set_procs';
+function  sk4d_wstreamadapter_create(context: Pointer): sk_wstreamadapter_t; cdecl;                                             external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_wstreamadapter_create';
+procedure sk4d_wstreamadapter_destroy(self: sk_wstreamadapter_t); cdecl;                                                        external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_wstreamadapter_destroy';
+procedure sk4d_wstreamadapter_set_procs(const procs: psk_wstreamadapter_procs_t); cdecl;                                        external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_wstreamadapter_set_procs';
 {$ENDIF}
 
 
@@ -10179,6 +10285,15 @@ function  sk4d_typeface_make_default(): sk_typeface_t; cdecl;                   
 function  sk4d_typeface_make_from_file(const file_name: MarshaledAString; ttc_index: int32_t): sk_typeface_t; cdecl;             external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_typeface_make_from_file';
 function  sk4d_typeface_make_from_stream(stream: sk_stream_t; ttc_index: int32_t): sk_typeface_t; cdecl;                         external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_typeface_make_from_stream';
 function  sk4d_typeface_make_from_name(const family_name: MarshaledAString; const style: psk_fontstyle_t): sk_typeface_t; cdecl; external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_typeface_make_from_name';
+{$ENDIF}
+
+
+{ include/c/sk4d_version.h }
+
+{$IFNDEF SK_STATIC_LIBRARY}
+  sk4d_version_get := GetProcAddress(LibraryHandle, PChar('sk4d_version_get'));
+{$ELSE}
+procedure sk4d_version_get(out major, minor, patch: int32_t); cdecl; external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_version_get';
 {$ENDIF}
 
 
@@ -10431,7 +10546,10 @@ procedure sk4d_strutstyle_set_leading(self: sk_strutstyle_t; value: float); cdec
   sk4d_textstyle_get_decoration_style     := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_get_decoration_style'));
   sk4d_textstyle_get_decoration_thickness := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_get_decoration_thickness'));
   sk4d_textstyle_get_decorations          := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_get_decorations'));
+  sk4d_textstyle_get_font_edging          := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_get_font_edging'));
   sk4d_textstyle_get_font_families        := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_get_font_families'));
+  sk4d_textstyle_get_font_features        := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_get_font_features'));
+  sk4d_textstyle_get_font_hinting         := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_get_font_hinting'));
   sk4d_textstyle_get_font_metrics         := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_get_font_metrics'));
   sk4d_textstyle_get_font_size            := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_get_font_size'));
   sk4d_textstyle_get_font_style           := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_get_font_style'));
@@ -10440,6 +10558,8 @@ procedure sk4d_strutstyle_set_leading(self: sk_strutstyle_t; value: float); cdec
   sk4d_textstyle_get_height_multiplier    := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_get_height_multiplier'));
   sk4d_textstyle_get_letter_spacing       := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_get_letter_spacing'));
   sk4d_textstyle_get_locale               := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_get_locale'));
+  sk4d_textstyle_get_shadows              := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_get_shadows'));
+  sk4d_textstyle_get_subpixel             := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_get_subpixel'));
   sk4d_textstyle_get_word_spacing         := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_get_word_spacing'));
   sk4d_textstyle_is_equal                 := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_is_equal'));
   sk4d_textstyle_reset_font_features      := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_reset_font_features'));
@@ -10450,7 +10570,9 @@ procedure sk4d_strutstyle_set_leading(self: sk_strutstyle_t; value: float); cdec
   sk4d_textstyle_set_decoration_style     := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_set_decoration_style'));
   sk4d_textstyle_set_decoration_thickness := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_set_decoration_thickness'));
   sk4d_textstyle_set_decorations          := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_set_decorations'));
+  sk4d_textstyle_set_font_edging          := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_set_font_edging'));
   sk4d_textstyle_set_font_families        := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_set_font_families'));
+  sk4d_textstyle_set_font_hinting         := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_set_font_hinting'));
   sk4d_textstyle_set_font_size            := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_set_font_size'));
   sk4d_textstyle_set_font_style           := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_set_font_style'));
   sk4d_textstyle_set_foreground_color     := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_set_foreground_color'));
@@ -10458,6 +10580,7 @@ procedure sk4d_strutstyle_set_leading(self: sk_strutstyle_t; value: float); cdec
   sk4d_textstyle_set_height_multiplier    := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_set_height_multiplier'));
   sk4d_textstyle_set_letter_spacing       := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_set_letter_spacing'));
   sk4d_textstyle_set_locale               := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_set_locale'));
+  sk4d_textstyle_set_subpixel             := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_set_subpixel'));
   sk4d_textstyle_set_word_spacing         := GetProcAddress(LibraryHandle, PChar('sk4d_textstyle_set_word_spacing'));
 {$ELSE}
 procedure sk4d_textstyle_add_font_feature(self: sk_textstyle_t; const feature: MarshaledAString; value: int32_t); cdecl; external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_add_font_feature';
@@ -10472,7 +10595,10 @@ function  sk4d_textstyle_get_decoration_color(const self: sk_textstyle_t): sk_co
 function  sk4d_textstyle_get_decoration_style(const self: sk_textstyle_t): sk_textdecorationstyle_t; cdecl;              external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_get_decoration_style';
 function  sk4d_textstyle_get_decoration_thickness(const self: sk_textstyle_t): float; cdecl;                             external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_get_decoration_thickness';
 function  sk4d_textstyle_get_decorations(const self: sk_textstyle_t): uint32_t; cdecl;                                   external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_get_decorations';
+function  sk4d_textstyle_get_font_edging(const self: sk_textstyle_t): sk_fontedging_t; cdecl;                            external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_get_font_edging';
 function  sk4d_textstyle_get_font_families(const self: sk_textstyle_t; const result: PMarshaledAString): size_t; cdecl;  external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_get_font_families';
+function  sk4d_textstyle_get_font_features(const self: sk_textstyle_t; names: psk_string_t; values: pint32_t): size_t; cdecl; external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_get_font_features';
+function  sk4d_textstyle_get_font_hinting(const self: sk_textstyle_t): sk_fonthinting_t; cdecl;                          external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_get_font_hinting';
 procedure sk4d_textstyle_get_font_metrics(const self: sk_textstyle_t; out result: sk_fontmetrics_t); cdecl;              external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_get_font_metrics';
 function  sk4d_textstyle_get_font_size(const self: sk_textstyle_t): float; cdecl;                                        external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_get_font_size';
 procedure sk4d_textstyle_get_font_style(const self: sk_textstyle_t; out result: sk_fontstyle_t); cdecl;                  external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_get_font_style';
@@ -10481,6 +10607,8 @@ function  sk4d_textstyle_get_half_leading(const self: sk_textstyle_t): _bool; cd
 function  sk4d_textstyle_get_height_multiplier(const self: sk_textstyle_t): float; cdecl;                                external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_get_height_multiplier';
 function  sk4d_textstyle_get_letter_spacing(const self: sk_textstyle_t): float; cdecl;                                   external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_get_letter_spacing';
 function  sk4d_textstyle_get_locale(const self: sk_textstyle_t): sk_string_t; cdecl;                                     external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_get_locale';
+function  sk4d_textstyle_get_shadows(const self: sk_textstyle_t; result: psk_textshadow_t): size_t; cdecl;               external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_get_shadows';
+function  sk4d_textstyle_get_subpixel(const self: sk_textstyle_t): _bool; cdecl;                                         external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_get_subpixel';
 function  sk4d_textstyle_get_word_spacing(const self: sk_textstyle_t): float; cdecl;                                     external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_get_word_spacing';
 function  sk4d_textstyle_is_equal(const self, text_style: sk_textstyle_t): _bool; cdecl;                                 external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_is_equal';
 procedure sk4d_textstyle_reset_font_features(self: sk_textstyle_t); cdecl;                                               external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_reset_font_features';
@@ -10491,7 +10619,9 @@ procedure sk4d_textstyle_set_decoration_color(self: sk_textstyle_t; value: sk_co
 procedure sk4d_textstyle_set_decoration_style(self: sk_textstyle_t; value: sk_textdecorationstyle_t); cdecl;             external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_set_decoration_style';
 procedure sk4d_textstyle_set_decoration_thickness(self: sk_textstyle_t; value: float); cdecl;                            external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_set_decoration_thickness';
 procedure sk4d_textstyle_set_decorations(self: sk_textstyle_t; value: uint32_t); cdecl;                                  external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_set_decorations';
+procedure sk4d_textstyle_set_font_edging(self: sk_textstyle_t; value: sk_fontedging_t); cdecl;                           external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_set_font_edging';
 procedure sk4d_textstyle_set_font_families(self: sk_textstyle_t; const values: PMarshaledAString; count: size_t); cdecl; external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_set_font_families';
+procedure sk4d_textstyle_set_font_hinting(self: sk_textstyle_t; value: sk_fonthinting_t); cdecl;                         external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_set_font_hinting';
 procedure sk4d_textstyle_set_font_size(self: sk_textstyle_t; value: float); cdecl;                                       external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_set_font_size';
 procedure sk4d_textstyle_set_font_style(self: sk_textstyle_t; const value: psk_fontstyle_t); cdecl;                      external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_set_font_style';
 procedure sk4d_textstyle_set_foreground_color(self: sk_textstyle_t; paint: sk_paint_t); cdecl;                           external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_set_foreground_color';
@@ -10499,6 +10629,7 @@ procedure sk4d_textstyle_set_half_leading(self: sk_textstyle_t; value: _bool); c
 procedure sk4d_textstyle_set_height_multiplier(self: sk_textstyle_t; value: float); cdecl;                               external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_set_height_multiplier';
 procedure sk4d_textstyle_set_letter_spacing(self: sk_textstyle_t; value: float); cdecl;                                  external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_set_letter_spacing';
 procedure sk4d_textstyle_set_locale(self: sk_textstyle_t; const value: MarshaledAString); cdecl;                         external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_set_locale';
+procedure sk4d_textstyle_set_subpixel(self: sk_textstyle_t; value: _bool); cdecl;                                        external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_set_subpixel';
 procedure sk4d_textstyle_set_word_spacing(self: sk_textstyle_t; value: float); cdecl;                                    external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_textstyle_set_word_spacing';
 {$ENDIF}
 
@@ -10572,15 +10703,17 @@ function  sk4d_unicodebreakiterator_next(self: sk_unicodebreakiterator_t; out el
   sk4d_svgdom_get_root           := GetProcAddress(LibraryHandle, PChar('sk4d_svgdom_get_root'));
   sk4d_svgdom_make_from_file     := GetProcAddress(LibraryHandle, PChar('sk4d_svgdom_make_from_file'));
   sk4d_svgdom_make_from_stream   := GetProcAddress(LibraryHandle, PChar('sk4d_svgdom_make_from_stream'));
+  sk4d_svgdom_make_from_stream2  := GetProcAddress(LibraryHandle, PChar('sk4d_svgdom_make_from_stream2'));
   sk4d_svgdom_render             := GetProcAddress(LibraryHandle, PChar('sk4d_svgdom_render'));
   sk4d_svgdom_set_container_size := GetProcAddress(LibraryHandle, PChar('sk4d_svgdom_set_container_size'));
 {$ELSE}
-function  sk4d_svgdom_find_node_by_id(self: sk_svgdom_t; const id: MarshaledAString): sk_svgnode_t; cdecl;                                              external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_svgdom_find_node_by_id';
-function  sk4d_svgdom_get_root(const self: sk_svgdom_t): sk_svgsvg_t; cdecl;                                                                            external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_svgdom_get_root';
-function  sk4d_svgdom_make_from_file(const file_name: MarshaledAString; font_provider: sk_fontmgr_t): sk_svgdom_t; cdecl;                               external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_svgdom_make_from_file';
-function  sk4d_svgdom_make_from_stream(stream: sk_stream_t; resource_provider: sk_resourceprovider_t; font_provider: sk_fontmgr_t): sk_svgdom_t; cdecl; external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_svgdom_make_from_stream';
-procedure sk4d_svgdom_render(const self: sk_svgdom_t; canvas: sk_canvas_t); cdecl;                                                                      external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_svgdom_render';
-procedure sk4d_svgdom_set_container_size(self: sk_svgdom_t; const size: psk_size_t); cdecl;                                                             external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_svgdom_set_container_size';
+function  sk4d_svgdom_find_node_by_id(self: sk_svgdom_t; const id: MarshaledAString): sk_svgnode_t; cdecl;                                                                                                                 external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_svgdom_find_node_by_id';
+function  sk4d_svgdom_get_root(const self: sk_svgdom_t): sk_svgsvg_t; cdecl;                                                                                                                                               external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_svgdom_get_root';
+function  sk4d_svgdom_make_from_file(const file_name: MarshaledAString; font_provider: sk_fontmgr_t): sk_svgdom_t; cdecl;                                                                                                  external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_svgdom_make_from_file';
+function  sk4d_svgdom_make_from_stream(stream: sk_stream_t; resource_provider: sk_resourceprovider_t; font_provider: sk_fontmgr_t): sk_svgdom_t; cdecl;                                                                    external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_svgdom_make_from_stream';
+function  sk4d_svgdom_make_from_stream2(stream: sk_stream_t; resource_provider: sk_resourceprovider_t; font_provider: sk_fontmgr_t; release_proc: sk_resourceprovider_release_proc; context: Pointer): sk_svgdom_t; cdecl; external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_svgdom_make_from_stream2';
+procedure sk4d_svgdom_render(const self: sk_svgdom_t; canvas: sk_canvas_t); cdecl;                                                                                                                                         external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_svgdom_render';
+procedure sk4d_svgdom_set_container_size(self: sk_svgdom_t; const size: psk_size_t); cdecl;                                                                                                                                external{$IF NOT DEFINED(FPC) and NOT DEFINED(MSWINDOWS)} LibraryName{$ENDIF} name _PU + 'sk4d_svgdom_set_container_size';
 {$ENDIF}
 
 
@@ -10627,6 +10760,18 @@ procedure sk4d_svgsvg_set_y(self: sk_svgsvg_t; value: psk_svglength_t); cdecl;  
 
 {$IFNDEF SK_STATIC_LIBRARY}
 end;
+
+procedure SkInitialize;
+begin
+  AcquireInitLock;
+  try
+    Inc(InitCount);
+    if InitCount = 1 then
+      InitializeLibrary;
+  finally
+    ReleaseInitLock;
+  end;
+end;
 {$ELSE}
 procedure SkInitialize;
 begin
@@ -10638,7 +10783,7 @@ begin
   {$ENDIF}
   begin
     if __InitLib <> 0 then
-      Abort;
+      raise Exception.Create('Could not initialize the Skia static library.');
     SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
   end;
   {$ENDIF}
@@ -10648,12 +10793,14 @@ end;
 {$IFNDEF SK_STATIC_LIBRARY}
 procedure SkFinalize;
 begin
-  {$IF DEFINED(FPC) and (FPC_FULLVERSION < 30301)}
-  if InterlockedDecrement(InitCount) = 0 then
-  {$ELSE}
-  if AtomicDecrement(InitCount) = 0 then
-  {$ENDIF}
-    FreeLibrary(LibraryHandle);
+  AcquireInitLock;
+  try
+    Dec(InitCount);
+    if InitCount = 0 then
+      FreeLibrary(LibraryHandle);
+  finally
+    ReleaseInitLock;
+  end;
 end;
 {$ELSE}
 procedure SkFinalize;

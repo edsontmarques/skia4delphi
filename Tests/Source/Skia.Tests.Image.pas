@@ -39,14 +39,18 @@ type
     procedure TestColorSpace;
     [Test]
     procedure TestColorType;
-    [TestCase('1', 'horse.webp,0.99,/85AAMDS8vL//nBgw9f+/v//d3P73/////////////8fgAeAB4AHwD/AAOAzQC/IC4APgABAAAA')]
+    [TestCase('1', 'horse.webp,0.99,6uMtxAAdxODADODzf33+gEshgAks/P9D/vlT/7/mCgDAgBT752B9+a27f/YIGND/AgQt/C5B6w')]
     procedure TestDecode(const AImageFileName: string; const AMinSimilarity: Double; const AExpectedImageHash: string);
-    [TestCase('1', 'horse.webp,0.99,//34gICYuPn//fjgw9/8/f///vbX3/39///+///////DwNawwADAAMABwADAAMAAwADAAMACwAA')]
+    [TestCase('1', 'horse.webp,0.99,ILC/ww0OlPA791HID4D7jpOAgPdxXH9FCsc7X3z8EriQvwjzc09ACwP0jvoGH4zvAf8lFH8A8g')]
     procedure TestDrawImage(const AImageFileName: string; const AMinSimilarity: Double; const AExpectedImageHash: string);
-    [TestCase('1', 'horse.webp,0.99,/85AAMDS8vL//nBgw9f+/v//d3P73/////////////8fgAeAB4AHwD/AAOAzQC/IC4APgABAAAA')]
+    [TestCase('1', 'horse.webp,0.99,6uMtxAAdxODADODzf33+gEshgAks/P9D/vlT/7/mCgDAgBT752B9+a27f/YIGND/AgQt/C5B6w')]
     procedure TestEncode(const AImageFileName: string; const AMinSimilarity: Double; const AExpectedImageHash: string);
     [Test]
     procedure TestEncodeToStream;
+    [TestCase('JPEG', 'JPEG')]
+    [TestCase('PNG',  'PNG')]
+    [TestCase('WebP', 'WEBP')]
+    procedure TestEncodeToStreamWithoutSpace(const AEncodedImageFormat: TSkEncodedImageFormat);
     [Test]
     procedure TestImageInfo;
     [Test]
@@ -73,13 +77,13 @@ type
     procedure TestUniqueId;
     [Test]
     procedure TestIsTextureBacked;
-    [TestCase('1', '0.99,JycnJycnJyd//3dnZ2fv7////+/v7/////////////8cfxx/HH8cfxx/HH8cfxx/HH8cfxx/HH8')]
+    [TestCase('1', '0.99,2tePfOAaSP/8IMPrTvn6KpTuOvKnd4CE4aoPIP34wh8eQezo81H58KCXrwLrqV/P+Qo2qK16Aw')]
     procedure TestMakeRasterCopy(const AMinSimilarity: Double; const AExpectedImageHash: string);
-    [TestCase('1', 'horse.webp,0.99,/85AAMDS8vL//nBgw9f+/v//d3P73/////////////8fgAeAB4AHwD/AAOAzQC/IC4APgABAAAA')]
+    [TestCase('1', 'horse.webp,0.99,6uMtxAAdxODADODzf33+gEshgAks/P9D/vlT/7/mCgDAgBT752B9+a27f/YIGND/AgQt/C5B6w')]
     procedure TestMakeRasterImage(const AImageFileName: string; const AMinSimilarity: Double; const AExpectedImageHash: string);
-    [TestCase('1', 'horse.webp,0.99,+Pjw+N0PBw///PD5309PT//++vvfb99v//7/+//v/+9ngX+A/4D/2T94AfwQ8gH8AdSAXwAnCQc')]
+    [TestCase('1', 'horse.webp,0.99,HbzdBAc2fKF+C0twYHrynk+g//A4AEBE8ukXnz3kNszPAAL2j4H++N8/ALkJFKCwhf8pQDC/6w')]
     procedure TestMakeShader(const AImageFileName: string; const AMinSimilarity: Double; const AExpectedImageHash: string);
-    [TestCase('1', 'horse.webp,0.99,/85AAMDS8vL//nBgw9f+/v//d3P73/////////////8fgAeAB4AHwD/AAOAzQC/IC4APgABAAAA')]
+    [TestCase('1', 'horse.webp,0.99,6uMtxAAdxODADODzf33+gEshgAks/P9D/vlT/7/mCgDAgBT752B9+a27f/YIGND/AgQt/C5B6w')]
     procedure TestPeekPixels(const AImageFileName: string; const AMinSimilarity: Double; const AExpectedImageHash: string);
     [Test]
     procedure TestSize;
@@ -108,6 +112,65 @@ uses
   System.Types,
   System.UITypes,
   System.IOUtils;
+
+type
+  { TFixedCapacityStream }
+
+  // Descends from TStream because the newer TMemoryStream overrides more
+  // overloads than the ones that exist in old RTLs.
+  TFixedCapacityStream = class(TStream)
+  strict private
+    FCapacity: Int64;
+    FData: TMemoryStream;
+  protected
+    function GetSize: Int64; override;
+  public
+    constructor Create(const ACapacity: Int64);
+    destructor Destroy; override;
+    function Read(var ABuffer; ACount: Longint): Longint; override;
+    function Seek(const AOffset: Int64; AOrigin: TSeekOrigin): Int64; override;
+    function Write(const ABuffer; ACount: Longint): Longint; override;
+  end;
+
+{ TFixedCapacityStream }
+
+constructor TFixedCapacityStream.Create(const ACapacity: Int64);
+begin
+  inherited Create;
+  FCapacity := ACapacity;
+  FData := TMemoryStream.Create;
+end;
+
+destructor TFixedCapacityStream.Destroy;
+begin
+  FData.Free;
+  inherited;
+end;
+
+function TFixedCapacityStream.GetSize: Int64;
+begin
+  Result := FData.Size;
+end;
+
+function TFixedCapacityStream.Read(var ABuffer; ACount: Longint): Longint;
+begin
+  Result := FData.Read(ABuffer, ACount);
+end;
+
+function TFixedCapacityStream.Seek(const AOffset: Int64;
+  AOrigin: TSeekOrigin): Int64;
+begin
+  Result := FData.Seek(AOffset, AOrigin);
+end;
+
+function TFixedCapacityStream.Write(const ABuffer; ACount: Longint): Longint;
+begin
+  if ACount > FCapacity - FData.Position then
+    ACount := FCapacity - FData.Position;
+  if ACount <= 0 then
+    Exit(0);
+  Result := FData.Write(ABuffer, ACount);
+end;
 
 { TSkImageTests }
 
@@ -138,6 +201,19 @@ begin
     Assert.IsTrue(LStream.Size > 0, 'The stream should not be empty');
     Assert.AreEqualPixels(LImage.Encode, Copy(LStream.Bytes, 0, LStream.Size),
       'Encode and EncodeToStream should produce the same image');
+  finally
+    LStream.Free;
+  end;
+end;
+
+procedure TSkImageTests.TestEncodeToStreamWithoutSpace(
+  const AEncodedImageFormat: TSkEncodedImageFormat);
+var
+  LStream: TStream;
+begin
+  LStream := TFixedCapacityStream.Create(16);
+  try
+    Assert.IsFalse(CreateTestImage.EncodeToStream(LStream, AEncodedImageFormat), 'EncodeToStream should fail when the stream cannot take all the data');
   finally
     LStream.Free;
   end;

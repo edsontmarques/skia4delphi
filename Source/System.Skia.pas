@@ -286,6 +286,7 @@ type
   TSkUnicodeBreakProc             = reference to procedure (const APosition, AStatus: Integer);
   TSkUnicodeCodepointProc         = reference to procedure (const AUnichar, AStart, AEnd: Integer);
 
+  // TODO: Make ESkArgumentException derive from ESkException in the next major version.
   ESkArgumentException            = class(Exception);
   ESkException                    = class(Exception);
 
@@ -482,6 +483,16 @@ type
     class function Mitchell: TSkCubicResampler; static; inline;
     class operator Equal(const ACubicResampler1, ACubicResampler2: TSkCubicResampler): Boolean;
     class operator NotEqual(const ACubicResampler1, ACubicResampler2: TSkCubicResampler): Boolean;
+  end;
+
+  { TSkFontFeature }
+
+  TSkFontFeature = record
+    Name: string;
+    Value: Integer;
+    constructor Create(const AName: string; const AValue: Integer);
+    class operator Equal(const AFontFeature1, AFontFeature2: TSkFontFeature): Boolean;
+    class operator NotEqual(const AFontFeature1, AFontFeature2: TSkFontFeature): Boolean;
   end;
 
   { TSkFontMetrics }
@@ -1488,6 +1499,14 @@ type
     class procedure __DestroyHandle(const AHandle: sk_handle_t); override;
   end;
 
+  { TSkCodecHelper }
+
+  // TODO: Merge this overload in TSkCodec in the next major version.
+  TSkCodecHelper = class helper for TSkCodec
+  public
+    class function MakeFromStream(const AStream: TStream; const AOwnsStream: Boolean): ISkCodec; overload; static;
+  end;
+
   { ISkAnimationCodecPlayer }
 
   ISkAnimationCodecPlayer = interface(ISkObject)
@@ -1519,6 +1538,14 @@ type
     class function MakeFromFile(const AFileName: string): ISkAnimationCodecPlayer; static;
     class function MakeFromStream(const AStream: TStream): ISkAnimationCodecPlayer; static;
     class procedure __DestroyHandle(const AHandle: sk_handle_t); override;
+  end;
+
+  { TSkAnimationCodecPlayerHelper }
+
+  // TODO: Merge this overload in TSkAnimationCodecPlayer in the next major version.
+  TSkAnimationCodecPlayerHelper = class helper for TSkAnimationCodecPlayer
+  public
+    class function MakeFromStream(const AStream: TStream; const AOwnsStream: Boolean): ISkAnimationCodecPlayer; overload; static;
   end;
 
   { ISkColorFilter }
@@ -2491,6 +2518,14 @@ type
 
   {$HPPEMIT END '#define SkPixmap(...) __SkCreate(TSkPixmap, ISkPixmap, __VA_ARGS__)'}
 
+  { TSkPixmapHelper }
+
+  // TODO: Merge this constructor in TSkPixmap in the next major version.
+  TSkPixmapHelper = class helper for TSkPixmap
+  public
+    constructor Create; overload;
+  end;
+
   TSkRectEnumerator = TSkEnumerable<TRect>.TEnumerator;
 
   { ISkRegionCliperator }
@@ -3120,6 +3155,7 @@ type
 
   { ISkParticleEffect }
 
+  // TODO: Remove particle effect on next major version.
   ISkParticleEffect = interface(ISkReferenceCounted)
     ['{A8AAC230-E76B-4BBE-84F2-82D09D38E0D4}']
     function GetPosition: TPointF;
@@ -3146,6 +3182,7 @@ type
 
   { TSkParticleEffect }
 
+  // TODO: Remove particle effect on next major version.
   TSkParticleEffect = class(TSkReferenceCounted, ISkParticleEffect)
   strict private
     function GetPosition: TPointF;
@@ -3537,6 +3574,27 @@ type
   end;
 
   {$HPPEMIT END '#define SkTextStyle(...) __SkCreate(TSkTextStyle, ISkTextStyle, __VA_ARGS__)'}
+
+  { TSkTextStyleHelper }
+
+  // TODO: Merge these properties in TSkTextStyle and ISkTextStyle in the next major version.
+  TSkTextStyleHelper = class helper for TSkTextStyle
+  strict private
+    function GetFontEdging: TSkFontEdging;
+    function GetFontFeatures: TArray<TSkFontFeature>;
+    function GetFontHinting: TSkFontHinting;
+    function GetShadows: TArray<TSkTextShadow>;
+    function GetSubpixel: Boolean;
+    procedure SetFontEdging(const AValue: TSkFontEdging);
+    procedure SetFontHinting(const AValue: TSkFontHinting);
+    procedure SetSubpixel(const AValue: Boolean);
+  public
+    property FontEdging: TSkFontEdging read GetFontEdging write SetFontEdging;
+    property FontFeatures: TArray<TSkFontFeature> read GetFontFeatures;
+    property FontHinting: TSkFontHinting read GetFontHinting write SetFontHinting;
+    property Shadows: TArray<TSkTextShadow> read GetShadows;
+    property Subpixel: Boolean read GetSubpixel write SetSubpixel;
+  end;
 
   { ISkTypefaceFontProvider }
 
@@ -3969,9 +4027,10 @@ type
     class function get_length_proc(context: Pointer): size_t; cdecl; static;
     class function get_position_proc(context: Pointer): size_t; cdecl; static;
     class function read_proc(context: Pointer; buffer: Pointer; size: size_t): size_t; cdecl; static;
+    class procedure release_proc(context: Pointer); cdecl; static;
     class function seek_proc(context: Pointer; position: size_t): _bool; cdecl; static;
   public
-    constructor Create(const AStream: TStream);
+    constructor Create(const AStream: TStream; const AOwnsStream: Boolean = False);
     class procedure __DestroyHandle(const AHandle: sk_handle_t); override;
   end;
 
@@ -4007,6 +4066,32 @@ type
     function GetText: string;
   public
     constructor Create;
+    class procedure __DestroyHandle(const AHandle: sk_handle_t); override;
+  end;
+
+  { TRegionCliperatorEx }
+
+  // TODO: Move this declaration to TSkRegion.TRegionCliperator in the next major version.
+  TRegionCliperatorEx = class(TSkEnumerable<TRect>, ISkRegionCliperator)
+  strict private
+    FCurrent: TRect;
+  public
+    constructor Create(const ARegion: ISkRegion; const AClip: TRect);
+    function GetCurrent: TRect; override;
+    function MoveNext: Boolean; override;
+    class procedure __DestroyHandle(const AHandle: sk_handle_t); override;
+  end;
+
+  { TRegionIteratorEx }
+
+  // TODO: Move this declaration to TSkRegion.TRegionIterator in the next major version.
+  TRegionIteratorEx = class(TSkEnumerable<TRect>, ISkRegionIterator)
+  strict private
+    FCurrent: TRect;
+  public
+    constructor Create(const ARegion: ISkRegion);
+    function GetCurrent: TRect; override;
+    function MoveNext: Boolean; override;
     class procedure __DestroyHandle(const AHandle: sk_handle_t); override;
   end;
 
@@ -4715,6 +4800,27 @@ begin
   Result := not (ACubicResampler1 = ACubicResampler2);
 end;
 
+{ TSkFontFeature }
+
+constructor TSkFontFeature.Create(const AName: string; const AValue: Integer);
+begin
+  Name  := AName;
+  Value := AValue;
+end;
+
+class operator TSkFontFeature.Equal(const AFontFeature1,
+  AFontFeature2: TSkFontFeature): Boolean;
+begin
+  Result := (AFontFeature1.Name  = AFontFeature2.Name ) and
+            (AFontFeature1.Value = AFontFeature2.Value);
+end;
+
+class operator TSkFontFeature.NotEqual(const AFontFeature1,
+  AFontFeature2: TSkFontFeature): Boolean;
+begin
+  Result := not (AFontFeature1 = AFontFeature2);
+end;
+
 { TSkFontMetrics }
 
 class operator TSkFontMetrics.Equal(const AFontMetrics1,
@@ -5103,14 +5209,14 @@ var
   LSrc: TArray<sk_frame_t>;
 begin
   if Length(AFileName) = 0 then
-    raise ESkException.Create(SFileNameIsEmpty);
+    raise ESkArgumentException.Create(SFileNameIsEmpty);
   if Length(ASrc) < 1 then
     raise ESkArgumentException.CreateFmt(SParamIsEmpty, ['ASrc']);
   SetLength(LSrc{%H-}, Length(ASrc));
   for I := 0 to Length(ASrc) - 1 do
   begin
     if not Assigned(ASrc[I].Pixmap) then
-      raise ESkException.Create(SInvalidOperation);
+      raise ESkArgumentException.CreateFmt(SParamIsNil, [Format('ASrc[%d]', [I])]);
     MapFrame(ASrc[I], LSrc[I]);
   end;
   Result := sk4d_animatedwebpencoder_encode_to_file(MarshaledAString(UTF8Encode(AFileName)), @LSrc[0], NativeUInt(Length(ASrc)), AQuality);
@@ -5129,7 +5235,7 @@ begin
   for I := 0 to Length(ASrc) - 1 do
   begin
     if not Assigned(ASrc[I].Pixmap) then
-      raise ESkException.Create(SInvalidOperation);
+      raise ESkArgumentException.CreateFmt(SParamIsNil, [Format('ASrc[%d]', [I])]);
     MapFrame(ASrc[I], LSrc[I]);
   end;
   LWStream := TSkWStreamAdapter.Create(AStream);
@@ -5176,7 +5282,7 @@ class function TSkImageEncoder.EncodeToFile(const AFileName: string;
   const AQuality: Integer): Boolean;
 begin
   if Length(AFileName) = 0 then
-    raise ESkException.Create(SFileNameIsEmpty);
+    raise ESkArgumentException.Create(SFileNameIsEmpty);
   if not Assigned(ASrc) then
     raise ESkArgumentException.CreateFmt(SParamIsNil, ['ASrc']);
   Result := sk4d_imageencoder_encode_to_file(MarshaledAString(UTF8Encode(AFileName)), ASrc.Handle, sk_encodedimageformat_t(AEncodedImageFormat), AQuality);
@@ -6911,7 +7017,7 @@ end;
 class function TSkCodec.MakeFromFile(const AFileName: string): ISkCodec;
 begin
   if Length(AFileName) = 0 then
-    raise ESkException.Create(SFileNameIsEmpty);
+    raise ESkArgumentException.Create(SFileNameIsEmpty);
   Result := TSkBindings.SafeCreate<TSkCodec>(sk4d_codec_make_from_file(MarshaledAString(UTF8Encode(AFileName))));
 end;
 
@@ -6942,6 +7048,17 @@ end;
 class procedure TSkCodec.__DestroyHandle(const AHandle: sk_handle_t);
 begin
   sk4d_codec_destroy(AHandle);
+end;
+
+{ TSkCodecHelper }
+
+class function TSkCodecHelper.MakeFromStream(const AStream: TStream;
+  const AOwnsStream: Boolean): ISkCodec;
+var
+  LStream: ISkStream;
+begin
+  LStream := TSkStreamAdapter.Create(AStream, AOwnsStream);
+  Result  := TSkBindings.SafeCreate<TSkCodec>(sk4d_codec_make_from_stream(TSkObject.__ReleaseHandle(LStream)));
 end;
 
 { TSkAnimationCodecPlayer }
@@ -6975,7 +7092,7 @@ class function TSkAnimationCodecPlayer.MakeFromFile(
   const AFileName: string): ISkAnimationCodecPlayer;
 begin
   if Length(AFileName) = 0 then
-    raise ESkException.Create(SFileNameIsEmpty);
+    raise ESkArgumentException.Create(SFileNameIsEmpty);
   Result := TSkBindings.SafeCreate<TSkAnimationCodecPlayer>(sk4d_animcodecplayer_make_from_file(MarshaledAString(UTF8Encode(AFileName))));
 end;
 
@@ -6996,6 +7113,17 @@ end;
 class procedure TSkAnimationCodecPlayer.__DestroyHandle(const AHandle: sk_handle_t);
 begin
   sk4d_animcodecplayer_destroy(AHandle);
+end;
+
+{ TSkAnimationCodecPlayerHelper }
+
+class function TSkAnimationCodecPlayerHelper.MakeFromStream(
+  const AStream: TStream; const AOwnsStream: Boolean): ISkAnimationCodecPlayer;
+var
+  LStream: ISkStream;
+begin
+  LStream := TSkStreamAdapter.Create(AStream, AOwnsStream);
+  Result  := TSkBindings.SafeCreate<TSkAnimationCodecPlayer>(sk4d_animcodecplayer_make_from_stream(TSkObject.__ReleaseHandle(LStream)));
 end;
 
 { TSkColorFilter }
@@ -7613,7 +7741,7 @@ function TSkImage.EncodeToFile(const AFileName: string;
   const AQuality: Integer): Boolean;
 begin
   if Length(AFileName) = 0 then
-    raise ESkException.Create(SFileNameIsEmpty);
+    raise ESkArgumentException.Create(SFileNameIsEmpty);
   Result := sk4d_image_encode_to_file(Handle, MarshaledAString(UTF8Encode(AFileName)), sk_encodedimageformat_t(AEncodedImageFormat), AQuality);
 end;
 
@@ -7751,7 +7879,7 @@ end;
 class function TSkImage.MakeFromEncodedFile(const AFileName: string): ISkImage;
 begin
   if Length(AFileName) = 0 then
-    raise ESkException.Create(SFileNameIsEmpty);
+    raise ESkArgumentException.Create(SFileNameIsEmpty);
   Result := TSkBindings.SafeCreate<TSkImage>(sk4d_image_make_from_encoded_file(MarshaledAString(UTF8Encode(AFileName))));
 end;
 
@@ -9730,6 +9858,13 @@ begin
   sk4d_pixmap_destroy(AHandle);
 end;
 
+{ TSkPixmapHelper }
+
+constructor TSkPixmapHelper.Create;
+begin
+  Wrap(sk4d_pixmap_create2());
+end;
+
 { TSkRegion }
 
 function TSkRegion.Contains(const ARegion: ISkRegion): Boolean;
@@ -9779,12 +9914,12 @@ end;
 
 function TSkRegion.GetCliperator(const AClip: TRect): ISkRegionCliperator;
 begin
-  Result := TRegionCliperator.Create(Self, AClip);
+  Result := TRegionCliperatorEx.Create(Self, AClip);
 end;
 
 function TSkRegion.GetIterator: ISkRegionIterator;
 begin
-  Result := TRegionIterator.Create(Self);
+  Result := TRegionIteratorEx.Create(Self);
 end;
 
 function TSkRegion.GetSpanerator(const AY, ALeft,
@@ -9963,6 +10098,59 @@ class procedure TSkRegion.TRegionSpanerator.__DestroyHandle(
   const AHandle: sk_handle_t);
 begin
   sk4d_regionspanerator_destroy(AHandle);
+end;
+
+{ TRegionCliperatorEx }
+
+constructor TRegionCliperatorEx.Create(const ARegion: ISkRegion;
+  const AClip: TRect);
+begin
+  inherited Create(sk4d_regioncliperator_create(ARegion.Handle, @AClip));
+end;
+
+function TRegionCliperatorEx.GetCurrent: TRect;
+begin
+  Result := FCurrent;
+end;
+
+// sk4d_regioncliperator_move_next steps past the current rectangle, so it has
+// to be read before.
+function TRegionCliperatorEx.MoveNext: Boolean;
+begin
+  sk4d_regioncliperator_get_current(Handle, sk_irect_t(FCurrent));
+  Result := sk4d_regioncliperator_move_next(Handle);
+end;
+
+class procedure TRegionCliperatorEx.__DestroyHandle(
+  const AHandle: sk_handle_t);
+begin
+  sk4d_regioncliperator_destroy(AHandle);
+end;
+
+{ TRegionIteratorEx }
+
+constructor TRegionIteratorEx.Create(const ARegion: ISkRegion);
+begin
+  inherited Create(sk4d_regioniterator_create(ARegion.Handle));
+end;
+
+function TRegionIteratorEx.GetCurrent: TRect;
+begin
+  Result := FCurrent;
+end;
+
+// sk4d_regioniterator_move_next steps past the current rectangle, so it has to
+// be read before.
+function TRegionIteratorEx.MoveNext: Boolean;
+begin
+  sk4d_regioniterator_get_current(Handle, sk_irect_t(FCurrent));
+  Result := sk4d_regioniterator_move_next(Handle);
+end;
+
+class procedure TRegionIteratorEx.__DestroyHandle(
+  const AHandle: sk_handle_t);
+begin
+  sk4d_regioniterator_destroy(AHandle);
 end;
 
 { TSkRoundRect }
@@ -10442,7 +10630,7 @@ procedure TSkRuntimeEffectBuilder.SetChild(const AName: string;
   const AChild: ISkBlender);
 begin
   if FEffect.GetChildTypeByName(AName) <> TSkRuntimeEffectChildType.Blender then
-    raise ESkException.Create(SInvalidOperation);
+    raise ESkArgumentException.Create(SInvalidOperation);
   sk4d_runtimeeffectbuilder_set_child3(Handle, MarshaledAString(UTF8Encode(AName)), TSkBindings.SafeHandle(AChild));
 end;
 
@@ -10450,7 +10638,7 @@ procedure TSkRuntimeEffectBuilder.SetChild(const AName: string;
   const AChild: ISkShader);
 begin
   if FEffect.GetChildTypeByName(AName) <> TSkRuntimeEffectChildType.Shader then
-    raise ESkException.Create(SInvalidOperation);
+    raise ESkArgumentException.Create(SInvalidOperation);
   sk4d_runtimeeffectbuilder_set_child(Handle, MarshaledAString(UTF8Encode(AName)), TSkBindings.SafeHandle(AChild));
 end;
 
@@ -10458,7 +10646,7 @@ procedure TSkRuntimeEffectBuilder.SetChild(const AName: string;
   const AChild: ISkColorFilter);
 begin
   if FEffect.GetChildTypeByName(AName) <> TSkRuntimeEffectChildType.ColorFilter then
-    raise ESkException.Create(SInvalidOperation);
+    raise ESkArgumentException.Create(SInvalidOperation);
   sk4d_runtimeeffectbuilder_set_child2(Handle, MarshaledAString(UTF8Encode(AName)), TSkBindings.SafeHandle(AChild));
 end;
 
@@ -10528,7 +10716,7 @@ begin
   else
     LSize := NativeUInt(UniformCount[FEffect.GetUniformTypeByName(AName)]) * NativeUInt(FEffect.GetUniformTypeCountByName(AName)) * NativeUInt(SizeOf(Single));
   if ASize <> LSize then
-    raise ESkException.Create(SInvalidOperation);
+    raise ESkArgumentException.CreateFmt(SParamSizeMismatch, ['AData']);
   sk4d_runtimeeffectbuilder_set_uniform(Handle, MarshaledAString(UTF8Encode(AName)), @AData);
 end;
 
@@ -11188,7 +11376,7 @@ begin
   for I := 0 to Length(ASemaphores) - 1 do
   begin
     if not Assigned(ASemaphores[I]) then
-      raise ESkException.Create(SInvalidOperation);
+      raise ESkArgumentException.CreateFmt(SParamIsNil, [Format('ASemaphores[%d]', [I])]);
     LSemaphores[I] := ASemaphores[I].Handle;
   end;
   sk4d_surface_flush_and_submit(Handle, @LSemaphores[0], Integer(Length(ASemaphores)), TSkBindings.SafeHandle(ANewState), ASyncCpu);
@@ -11470,7 +11658,7 @@ begin
   for I := 0 to Length(ASemaphores) - 1 do
   begin
     if not Assigned(ASemaphores[I]) then
-      raise ESkException.Create(SInvalidOperation);
+      raise ESkArgumentException.CreateFmt(SParamIsNil, [Format('ASemaphores[%d]', [I])]);
     LSemaphores[I] := ASemaphores[I].Handle;
   end;
   sk4d_surface_wait(Handle, @LSemaphores[0], Integer(Length(ASemaphores)));
@@ -11642,7 +11830,7 @@ class function TSkTypeface.MakeFromFile(const AFileName: string;
   const ATTCIndex: Integer): ISkTypeface;
 begin
   if Length(AFileName) = 0 then
-    raise ESkException.Create(SFileNameIsEmpty);
+    raise ESkArgumentException.Create(SFileNameIsEmpty);
   Result := TSkBindings.SafeCreate<TSkTypeFace>(sk4d_typeface_make_from_file(MarshaledAString(UTF8Encode(AFileName)), ATTCIndex));
 end;
 
@@ -11755,7 +11943,7 @@ class function TSkParticleEffect.MakeFromFile(
   const AFileName: string): ISkParticleEffect;
 begin
   if Length(AFileName) = 0 then
-    raise ESkException.Create(SFileNameIsEmpty);
+    raise ESkArgumentException.Create(SFileNameIsEmpty);
   Result := TSkBindings.SafeCreate<TSkParticleEffect>(sk4d_particleeffect_make_from_file(MarshaledAString(UTF8Encode(AFileName))));
 end;
 
@@ -11853,7 +12041,7 @@ class function TSkottieAnimation.MakeFromFile(const AFileName: string;
   const AFontProvider: ISkTypefaceFontProvider): ISkottieAnimation;
 begin
   if Length(AFileName) = 0 then
-    raise ESkException.Create(SFileNameIsEmpty);
+    raise ESkArgumentException.Create(SFileNameIsEmpty);
   Result := TSkBindings.SafeCreate<TSkottieAnimation>(sk4d_skottieanimation_make_from_file(MarshaledAString(UTF8Encode(AFileName)), TSkBindings.SafeHandle(AFontProvider)));
 end;
 
@@ -12550,6 +12738,62 @@ begin
   sk4d_textstyle_destroy(AHandle);
 end;
 
+{ TSkTextStyleHelper }
+
+function TSkTextStyleHelper.GetFontEdging: TSkFontEdging;
+begin
+  Result := TSkFontEdging(sk4d_textstyle_get_font_edging(Handle));
+end;
+
+function TSkTextStyleHelper.GetFontFeatures: TArray<TSkFontFeature>;
+var
+  I: NativeInt;
+  LName: ISkString;
+  LNames: TArray<sk_string_t>;
+  LValues: TArray<int32_t>;
+begin
+  SetLength(LNames{%H-}, sk4d_textstyle_get_font_features(Handle, nil, nil));
+  SetLength(LValues{%H-}, Length(LNames));
+  sk4d_textstyle_get_font_features(Handle, @LNames[0], @LValues[0]);
+  SetLength(Result{%H-}, Length(LNames));
+  for I := 0 to Length(LNames) - 1 do
+  begin
+    LName     := TSkString.Wrap(LNames[I]);
+    Result[I] := TSkFontFeature.Create(LName.Text, LValues[I]);
+  end;
+end;
+
+function TSkTextStyleHelper.GetFontHinting: TSkFontHinting;
+begin
+  Result := TSkFontHinting(sk4d_textstyle_get_font_hinting(Handle));
+end;
+
+function TSkTextStyleHelper.GetShadows: TArray<TSkTextShadow>;
+begin
+  SetLength(Result{%H-}, sk4d_textstyle_get_shadows(Handle, nil));
+  sk4d_textstyle_get_shadows(Handle, @Result[0]);
+end;
+
+function TSkTextStyleHelper.GetSubpixel: Boolean;
+begin
+  Result := sk4d_textstyle_get_subpixel(Handle);
+end;
+
+procedure TSkTextStyleHelper.SetFontEdging(const AValue: TSkFontEdging);
+begin
+  sk4d_textstyle_set_font_edging(Handle, sk_fontedging_t(AValue));
+end;
+
+procedure TSkTextStyleHelper.SetFontHinting(const AValue: TSkFontHinting);
+begin
+  sk4d_textstyle_set_font_hinting(Handle, sk_fonthinting_t(AValue));
+end;
+
+procedure TSkTextStyleHelper.SetSubpixel(const AValue: Boolean);
+begin
+  sk4d_textstyle_set_subpixel(Handle, AValue);
+end;
+
 { TSkTypefaceFontProvider }
 
 constructor TSkTypefaceFontProvider.Create;
@@ -12672,17 +12916,34 @@ begin
   Result := LCanvas;
 end;
 
+procedure resource_provider_release_proc(context: Pointer); cdecl;
+begin
+  IInterface(context)._Release;
+end;
+
 { TSkSVGDOM }
 
 function TSkSVGDOM.FindNodeById(const AId: string): ISkSVGNode;
+var
+  LHandle: sk_svgnode_t;
 begin
-  Result := TSkBindings.SafeCreate<TSkSVGNode>(sk4d_svgdom_find_node_by_id(Handle, MarshaledAString(UTF8Encode(AId))), False);
+  LHandle := sk4d_svgdom_find_node_by_id(Handle, MarshaledAString(UTF8Encode(AId)));
+  if LHandle <> 0 then
+    TSkSVGNode.__RefHandle(LHandle);
+  Result := TSkBindings.SafeCreate<TSkSVGNode>(LHandle);
 end;
 
 function TSkSVGDOM.GetRoot: ISkSVGSVG;
+var
+  LHandle: sk_svgsvg_t;
 begin
   if not Assigned(FRoot) then
-    FRoot := TSkBindings.SafeCreate<TSkSVGSVG>(sk4d_svgdom_get_root(Handle), False);
+  begin
+    LHandle := sk4d_svgdom_get_root(Handle);
+    if LHandle <> 0 then
+      TSkSVGSVG.__RefHandle(LHandle);
+    FRoot := TSkBindings.SafeCreate<TSkSVGSVG>(LHandle);
+  end;
   Result := FRoot;
 end;
 
@@ -12704,7 +12965,7 @@ class function TSkSVGDOM.MakeFromFile(const AFileName: string;
   const AFontProvider: ISkTypefaceFontProvider): ISkSVGDOM;
 begin
   if Length(AFileName) = 0 then
-    raise ESkException.Create(SFileNameIsEmpty);
+    raise ESkArgumentException.Create(SFileNameIsEmpty);
   Result := TSkBindings.SafeCreate<TSkSVGDOM>(sk4d_svgdom_make_from_file(MarshaledAString(UTF8Encode(AFileName)), TSkBindings.SafeHandle(AFontProvider)));
 end;
 
@@ -12715,7 +12976,13 @@ var
   LStream: ISkStream;
 begin
   LStream := TSkStreamAdapter.Create(AStream);
-  Result  := TSkBindings.SafeCreate<TSkSVGDOM>(sk4d_svgdom_make_from_stream(LStream.Handle, TSkBindings.SafeHandle(AResourceProvider), TSkBindings.SafeHandle(AFontProvider)));
+  if Assigned(AResourceProvider) then
+  begin
+    AResourceProvider._AddRef;
+    Result := TSkBindings.SafeCreate<TSkSVGDOM>(sk4d_svgdom_make_from_stream2(LStream.Handle, AResourceProvider.Handle, TSkBindings.SafeHandle(AFontProvider), resource_provider_release_proc, Pointer(AResourceProvider)));
+  end
+  else
+    Result := TSkBindings.SafeCreate<TSkSVGDOM>(sk4d_svgdom_make_from_stream(LStream.Handle, 0, TSkBindings.SafeHandle(AFontProvider)));
 end;
 
 procedure TSkSVGDOM.Render(const ACanvas: ISkCanvas);
@@ -13003,9 +13270,12 @@ begin
   sk4d_streamadapter_set_procs(@LProcs);
 end;
 
-constructor TSkStreamAdapter.Create(const AStream: TStream);
+constructor TSkStreamAdapter.Create(const AStream: TStream; const AOwnsStream: Boolean);
 begin
-  inherited Create(sk4d_streamadapter_create(AStream));
+  if AOwnsStream then
+    inherited Create(sk4d_streamadapter_create2(AStream, release_proc))
+  else
+    inherited Create(sk4d_streamadapter_create(AStream));
 end;
 
 class function TSkStreamAdapter.get_length_proc(context: Pointer): size_t;
@@ -13024,11 +13294,15 @@ begin
   Result := NativeUInt(TStream(context).Read(buffer^, NativeInt(size)));
 end;
 
+class procedure TSkStreamAdapter.release_proc(context: Pointer);
+begin
+  TStream(context).Free;
+end;
+
 class function TSkStreamAdapter.seek_proc(context: Pointer;
   position: size_t): _bool;
 begin
-  TStream(context).Position := Int64(position);
-  Result := True;
+  Result := TStream(context).Seek(Int64(position), soBeginning) = Int64(position);
 end;
 
 class procedure TSkStreamAdapter.__DestroyHandle(const AHandle: sk_handle_t);
@@ -13054,8 +13328,7 @@ end;
 class function TSkWStreamAdapter.write_proc(context: Pointer;
   const buffer: Pointer; size: size_t): _bool;
 begin
-  TStream(context).Write(buffer^, NativeInt(size));
-  Result := True;
+  Result := TStream(context).Write(buffer^, NativeInt(size)) = NativeInt(size);
 end;
 
 class procedure TSkWStreamAdapter.__DestroyHandle(const AHandle: sk_handle_t);
